@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Xuoh の 小屋</title>
+    <link rel="icon" type="image/x-icon" href="images/favicon.png" />
+    <link rel="stylesheet" href="css/gallery.css" />
+    <link rel="stylesheet" href="css/style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <script src="js/gallery.js"></script>
+  </head>
+  <body>
+    <header>
+      <nav>
+        <ul>
+          <div id="title"><a href="homepage.html">Xuoh の 小屋</a></div>
+          <li>
+            <a href="homepage.html"><i class="fas fa-home"></i> 首页</a>
+          </li>
+          <li>
+            <a href="comments.html"><i class="fas fa-comments"></i> 留言板</a>
+          </li>
+          <li>
+            <a href="gallery.html"><i class="fas fa-images"></i> 图库展藏</a>
+          </li>
+          <li>
+            <a href="planet.html"><i class="fas fa-globe"></i> 星球卡片</a>
+          </li>
+          <li>
+            <a href="about.html"><i class="fas fa-info-circle"></i> 关于</a>
+          </li>
+        </ul>
+      </nav>
+    </header>
+    <main>
+      <div class="container">
+        <div class="gallery-intro">
+          <h2>图库展藏</h2>
+          <p>探索宇宙奥秘与美丽瞬间，一起开启璀璨星空之旅吧！</p>
+        </div>
+        <div class="gallery-filter">
+          <button class="filter-btn active" data-filter="all">全部</button>
+          <button class="filter-btn" data-filter="universe">宇宙</button>
+          <button class="filter-btn" data-filter="university">校园</button>
+          <button class="filter-btn" data-filter="other">其他</button>
+        </div>
+        <div class="gallery-container" id="galleryContainer"></div>
+      </div>
+    </main>
+    <!-- 模态框 -->
+    <div class="gallery-modal" id="galleryModal">
+      <span class="close-modal" id="closeModal">&times;</span>
+      <img class="modal-content" id="modalImage" />
+      <div class="modal-caption" id="modalCaption">
+        <h3 id="modalTitle"></h3>
+      </div>
+      <div class="modal-nav">
+        <button class="modal-prev" id="modalPrev">&#10094;</button>
+        <button class="modal-next" id="modalNext">&#10095;</button>
+      </div>
+    </div>
+    <footer id="footer">
+      <div class="footer-content">
+        <div class="footer-about">
+          <h2>关于本站☘️</h2>
+          <p>xuoh の 小屋是一个分享宇宙奥秘、时间哲学和个人思考的空间。</p>
+          <div class="contact">
+            <span
+              ><a href="mailto:zijunxu2004@gmail.com"
+                ><i class="fas fa-envelope"></i
+              ></a>
+              zijunxu2004@gmail.com</span
+            >
+          </div>
+          <div class="socials">
+            <a
+              href="http://wpa.qq.com/msgrd?v=3&uin=1426283214&site=qq&menu=yes"
+              ><i class="fab fa-qq"></i
+            ></a>
+            <a href="https://pic.142628.xyz/images/WeChat.png"
+              ><i class="fab fa-weixin"></i
+            ></a>
+            <a href="https://github.com/xuoh"><i class="fab fa-github"></i></a>
+          </div>
+        </div>
+        <div class="footer-links">
+          <h2>猜你想看🎲</h2>
+          <ul>
+            <li><a href="homepage.html">首页</a></li>
+            <li><a href="comments.html">留言板</a></li>
+            <li><a href="gallery.html">图库展藏</a></li>
+            <li><a href="planet.html">星球卡片</a></li>
+            <li><a href="about.html">关于</a></li>
+          </ul>
+        </div>
+        <div class="footer-saying">
+          <h2>格言🪄</h2>
+          <p>星空万世璀璨，奥秘无穷，一起探索吧</p>
+          <a href="gallery.html"><button>点击开启璀璨星空之旅</button></a>
+        </div>
+      </div>
+      <div class="footer-bottom">&copy; 2025 xuoh の 小屋 | by xuoh</div>
+    </footer>
+  </body>
+</html>

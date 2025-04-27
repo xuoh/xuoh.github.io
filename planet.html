@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Xuoh の 小屋</title>
+    <link rel="icon" type="image/x-icon" href="images/favicon.png" />
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/planet.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <script src="js/planet.js"></script>
+  </head>
+  <body>
+    <header>
+      <nav>
+        <ul>
+          <div id="title"><a href="homepage.html">Xuoh の 小屋</a></div>
+          <li>
+            <a href="homepage.html"><i class="fas fa-home"></i> 首页</a>
+          </li>
+          <li>
+            <a href="comments.html"><i class="fas fa-comments"></i> 留言板</a>
+          </li>
+          <li>
+            <a href="gallery.html"><i class="fas fa-images"></i> 图库展藏</a>
+          </li>
+          <li>
+            <a href="planet.html"><i class="fas fa-globe"></i> 星球卡片</a>
+          </li>
+          <li>
+            <a href="about.html"><i class="fas fa-info-circle"></i> 关于</a>
+          </li>
+        </ul>
+      </nav>
+    </header>
+    <main>
+      <div class="planet-container">
+        <div class="planet-header">
+          <h1 data-text="太阳系行星卡片">太阳系行星卡片</h1>
+          <p>探索我们太阳系中的八大行星和太阳，了解它们的奥秘和特点</p>
+          <div class="cosmic-scanner">
+            <div class="scanner-line"></div>
+          </div>
+        </div>
+
+        <!-- 太阳系轨道动画 -->
+        <div class="solar-system">
+          <!-- 太阳中心 -->
+          <div class="sun-center" data-planet="sun"></div>
+
+          <div class="orbit orbit-1">
+            <div class="orbit-dot" data-planet="mercury"></div>
+          </div>
+          <div class="orbit orbit-2">
+            <div class="orbit-dot" data-planet="venus"></div>
+          </div>
+          <div class="orbit orbit-3">
+            <div class="orbit-dot" data-planet="earth"></div>
+          </div>
+          <div class="orbit orbit-4">
+            <div class="orbit-dot" data-planet="mars"></div>
+          </div>
+          <div class="orbit orbit-5">
+            <div class="orbit-dot" data-planet="jupiter"></div>
+          </div>
+          <div class="orbit orbit-6">
+            <div class="orbit-dot" data-planet="saturn"></div>
+          </div>
+          <div class="orbit orbit-7">
+            <div class="orbit-dot" data-planet="uranus"></div>
+          </div>
+          <div class="orbit orbit-8">
+            <div class="orbit-dot" data-planet="neptune"></div>
+          </div>
+        </div>
+
+        <div class="planets-grid">
+          <!-- 太阳 -->
+          <div class="planet-card sun-card" data-planet="sun">
+            <div class="planet-image-container">
+              <img src="images/sun.png" alt="太阳" class="planet-image" />
+            </div>
+            <div class="planet-name">太阳 (Sun)</div>
+            <div class="planet-info">
+              <div class="planet-fact">
+                <span>类型:</span>
+                <span>G型主序星</span>
+              </div>
+              <div class="planet-fact">
+                <span>直径:</span>
+                <span>1,392,700 km (地球的109倍)</span>
+              </div>
+              <div class="planet-fact">
+                <span>质量:</span>
+                <span>1.989 × 10^30 kg (地球的333,000倍)</span>
+              </div>
+              <div class="planet-fact">
+                <span>表面温度:</span>
+                <span>5,500°C</span>
+              </div>
+              <div class="planet-fact">
+                <span>年龄:</span>
+                <span>约46亿年</span>
+              </div>
+              <p>
+                太阳是太阳系的中心天体，占据了太阳系总质量的99.86%。它通过核聚变产生能量，为地球和其他行星提供光和热。
+              </p>
+            </div>
+          </div>
+
+          <!-- 水星 -->
+          <div class="planet-card" data-planet="mercury">
+            <div class="planet-image-container">
+              <img src="images/mercury.png" alt="水星" class="planet-image" />
+            </div>
+            <div class="planet-name">水星 (Mercury)</div>
+            <div class="planet-info">
+              <div class="planet-fact">
+                <span>轨道:</span>
+                <span>距太阳0.39天文单位</span>
+              </div>
+              <div class="planet-fact">
+                <span>直径:</span>
+                <span>4,879 km</span>
+              </div>
+              <div class="planet-fact">
+                <span>公转周期:</span>
+                <span>88天</span>
+              </div>
+              <div class="planet-fact">
+                <span>自转周期:</span>
+                <span>59天</span>
+              </div>
+              <p>
+                水星是太阳系中最小的行星，也是距离太阳最近的行星。它表面布满陨石坑，没有大气层，温差极大。
+              </p>
+            </div>
+          </div>
+
+          <!-- 金星 -->
+          <div class="planet-card" data-planet="venus">
+            <div class="planet-image-container">
+              <img src="images/venus.png" alt="金星" class="planet-image" />
+            </div>
+            <div class="planet-name">金星 (Venus)</div>
+            <div class="planet-info">
+              <div class="planet-fact">
+                <span>轨道:</span>
+                <span>距太阳0.72天文单位</span>
+              </div>
+              <div class="planet-fact">
+                <span>直径:</span>
+                <span>12,104 km</span>
+              </div>
+              <div class="planet-fact">
+                <span>公转周期:</span>
+                <span>225天</span>
+              </div>
+              <div class="planet-fact">
+                <span>自转周期:</span>
+                <span>243天（逆向）</span>
+              </div>
+              <p>
+                金星是太阳系中最热的行星，表面温度可达460°C。它被厚厚的二氧化碳大气层包围，造成了强烈的温室效应。
+              </p>
+            </div>
+          </div>
+
+          <!-- 地球 -->
+          <div class="planet-card" data-planet="earth">
+            <div class="planet-image-container">
+              <img src="images/earth.png" alt="地球" class="planet-image" />
+            </div>
+            <div class="planet-name">地球 (Earth)</div>
+            <div class="planet-info">
+              <div class="planet-fact">
+                <span>轨道:</span>
+                <span>距太阳1天文单位</span>
+              </div>
+              <div class="planet-fact">
+                <span>直径:</span>
+                <span>12,742 km</span>
+              </div>
+              <div class="planet-fact">
+                <span>公转周期:</span>
+                <span>365.25天</span>
+              </div>
+              <div class="planet-fact">
+                <span>自转周期:</span>
+                <span>24小时</span>
+              </div>
+              <p>
+                地球是太阳系中唯一已知存在生命的行星。它有丰富的水资源和适宜的大气层，使生命得以繁衍。
+              </p>
+            </div>
+          </div>
+
+          <!-- 火星 -->
+          <div class="planet-card" data-planet="mars">
+            <div class="planet-image-container">
+              <img src="images/mars.png" alt="火星" class="planet-image" />
+            </div>
+            <div class="planet-name">火星 (Mars)</div>
+            <div class="planet-info">
+              <div class="planet-fact">
+                <span>轨道:</span>
+                <span>距太阳1.52天文单位</span>
+              </div>
+              <div class="planet-fact">
+                <span>直径:</span>
+                <span>6,779 km</span>
+              </div>
+              <div class="planet-fact">
+                <span>公转周期:</span>
+                <span>687天</span>
+              </div>
+              <div class="planet-fact">
+                <span>自转周期:</span>
+                <span>24.6小时</span>
+              </div>
+              <p>
+                火星被称为红色星球，因其表面富含氧化铁。它有薄薄的大气层，有极冠和季节变化，是人类探索的重要目标。
+              </p>
+            </div>
+          </div>
+
+          <!-- 木星 -->
+          <div class="planet-card" data-planet="jupiter">
+            <div class="planet-image-container">
+              <img src="images/jupiter.png" alt="木星" class="planet-image" />
+            </div>
+            <div class="planet-name">木星 (Jupiter)</div>
+            <div class="planet-info">
+              <div class="planet-fact">
+                <span>轨道:</span>
+                <span>距太阳5.2天文单位</span>
+              </div>
+              <div class="planet-fact">
+                <span>直径:</span>
+                <span>139,820 km</span>
+              </div>
+              <div class="planet-fact">
+                <span>公转周期:</span>
+                <span>11.9年</span>
+              </div>
+              <div class="planet-fact">
+                <span>自转周期:</span>
+                <span>9.9小时</span>
+              </div>
+              <p>
+                木星是太阳系中最大的行星，质量是其他所有行星总和的2.5倍。它是一个气态巨行星，有著名的大红斑和复杂的云带结构。
+              </p>
+            </div>
+          </div>
+
+          <!-- 土星 -->
+          <div class="planet-card" data-planet="saturn">
+            <div class="planet-image-container">
+              <img src="images/saturn.png" alt="土星" class="planet-image" />
+            </div>
+            <div class="planet-name">土星 (Saturn)</div>
+            <div class="planet-info">
+              <div class="planet-fact">
+                <span>轨道:</span>
+                <span>距太阳9.5天文单位</span>
+              </div>
+              <div class="planet-fact">
+                <span>直径:</span>
+                <span>116,460 km</span>
+              </div>
+              <div class="planet-fact">
+                <span>公转周期:</span>
+                <span>29.5年</span>
+              </div>
+              <div class="planet-fact">
+                <span>自转周期:</span>
+                <span>10.7小时</span>
+              </div>
+              <p>
+                土星以其壮观的环系统而闻名，这些环由冰粒和岩石碎片组成。它是太阳系中第二大行星，也是一个气态巨行星。
+              </p>
+            </div>
+          </div>
+
+          <!-- 天王星 -->
+          <div class="planet-card" data-planet="uranus">
+            <div class="planet-image-container">
+              <img src="images/uranus.png" alt="天王星" class="planet-image" />
+            </div>
+            <div class="planet-name">天王星 (Uranus)</div>
+            <div class="planet-info">
+              <div class="planet-fact">
+                <span>轨道:</span>
+                <span>距太阳19.2天文单位</span>
+              </div>
+              <div class="planet-fact">
+                <span>直径:</span>
+                <span>50,724 km</span>
+              </div>
+              <div class="planet-fact">
+                <span>公转周期:</span>
+                <span>84年</span>
+              </div>
+              <div class="planet-fact">
+                <span>自转周期:</span>
+                <span>17.2小时（逆向）</span>
+              </div>
+              <p>
+                天王星是一个冰巨行星，以其独特的侧卧自转方式而著名。它呈现出淡蓝色，这是由于大气中的甲烷吸收了红光。
+              </p>
+            </div>
+          </div>
+
+          <!-- 海王星 -->
+          <div class="planet-card" data-planet="neptune">
+            <div class="planet-image-container">
+              <img src="images/neptune.png" alt="海王星" class="planet-image" />
+            </div>
+            <div class="planet-name">海王星 (Neptune)</div>
+            <div class="planet-info">
+              <div class="planet-fact">
+                <span>轨道:</span>
+                <span>距太阳30.1天文单位</span>
+              </div>
+              <div class="planet-fact">
+                <span>直径:</span>
+                <span>49,244 km</span>
+              </div>
+              <div class="planet-fact">
+                <span>公转周期:</span>
+                <span>165年</span>
+              </div>
+              <div class="planet-fact">
+                <span>自转周期:</span>
+                <span>16.1小时</span>
+              </div>
+              <p>
+                海王星是太阳系中最远的行星，也是一个冰巨行星。它有强烈的风暴系统，包括著名的大黑斑。海王星的发现是天文学的重要成就。
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <footer id="footer">
+      <div class="footer-content">
+        <div class="footer-about">
+          <h2>关于本站☘️</h2>
+          <p>xuoh の 小屋是一个分享宇宙奥秘、时间哲学和个人思考的空间。</p>
+          <div class="contact">
+            <span
+              ><a href="mailto:zijunxu2004@gmail.com"
+                ><i class="fas fa-envelope"></i
+              ></a>
+              zijunxu2004@gmail.com</span
+            >
+          </div>
+          <div class="socials">
+            <a
+              href="http://wpa.qq.com/msgrd?v=3&uin=1426283214&site=qq&menu=yes"
+              ><i class="fab fa-qq"></i
+            ></a>
+            <a href="https://pic.142628.xyz/images/WeChat.png"
+              ><i class="fab fa-weixin"></i
+            ></a>
+            <a href="https://github.com/xuoh"><i class="fab fa-github"></i></a>
+          </div>
+        </div>
+        <div class="footer-links">
+          <h2>猜你想看🎲</h2>
+          <ul>
+            <li><a href="homepage.html">首页</a></li>
+            <li><a href="comments.html">留言板</a></li>
+            <li><a href="gallery.html">图库展藏</a></li>
+            <li><a href="planet.html">星球卡片</a></li>
+            <li><a href="about.html">关于</a></li>
+          </ul>
+        </div>
+        <div class="footer-saying">
+          <h2>格言🪄</h2>
+          <p>星空万世璀璨，奥秘无穷，一起探索吧</p>
+          <a href="gallery.html"><button>点击开启璀璨星空之旅</button></a>
+        </div>
+      </div>
+      <div class="footer-bottom">&copy; 2025 xuoh の 小屋 | by xuoh</div>
+    </footer>
+  </body>
+</html>
