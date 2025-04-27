@@ -1,0 +1,173 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  font-family: kaiti;
+  color: white;
+  background-image: url("../images/bg.jpg");
+  background-size: cover;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000; /* 添加高z-index值确保导航栏始终在最上层 */
+}
+nav ul {
+  list-style-type: none;
+  display: flex;
+  justify-content: center;
+  padding: 10px 0;
+}
+#title a {
+  color: white;
+  font-size: 24px;
+  text-decoration: none;
+}
+#title a:hover {
+  color: blueviolet;
+}
+nav ul li {
+  margin: 0 15px;
+}
+nav ul li a {
+  color: white;
+  text-decoration: none;
+  font-size: 18px;
+}
+nav ul li a:hover {
+  color: blueviolet;
+}
+main {
+  margin-top: 80px;
+  flex: 1;
+}
+.container {
+  position: relative;
+  text-align: center;
+}
+.container h1 {
+  font-size: 80px;
+  margin-bottom: 10px;
+}
+.container p {
+  font-size: 30px;
+}
+footer {
+  width: 100%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.3));
+  text-align: center;
+  padding: 20px 0;
+  box-shadow: 0 -2px 10px rgba(255, 255, 255, 0.1);
+  margin-top: 50px;
+}
+
+.footer-content {
+  display: flex;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+.footer-about,
+.footer-links,
+.footer-saying {
+  flex: 1;
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+footer h2 {
+  font-size: 22px;
+  margin-bottom: 15px;
+  position: relative;
+  padding-bottom: 8px;
+}
+
+footer h2::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 2px;
+  background: linear-gradient(to right, #6a11cb, #2575fc);
+}
+
+.footer-about p,
+.footer-content,
+.footer-saying p {
+  font-size: 16px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 20px;
+}
+
+.footer-saying {
+  border-right: none;
+}
+
+/*去掉ul前面的小圆点*/
+.footer-links ul {
+  list-style: none;
+}
+
+.footer-links ul li {
+  margin-bottom: 10px;
+}
+
+.footer-links ul li a {
+  text-decoration: none;
+}
+.footer-links ul li a,
+a:visited,
+a:link,
+a:hover {
+  color: white;
+}
+
+.footer-links ul li a:hover {
+  color: red;
+  padding-left: 5px;
+}
+.footer-about p {
+  margin-bottom: 20px;
+}
+.contact span {
+  display: block;
+  margin-bottom: 10px;
+}
+.socials a {
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  line-height: 40px;
+  text-align: center;
+  border-radius: 50%;
+  margin-right: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+.socials a:hover {
+  background: linear-gradient(to right, #6a11cb, #2575fc);
+  transform: translateY(-3px);
+}
+
+.footer-saying button {
+  width: 80%;
+  padding: 12px;
+  background: linear-gradient(to right, #6a11cb, #2575fc);
+  color: white;
+  cursor: pointer;
+  border-radius: 50px;
+  margin: 25px 0;
+}
+
+.footer-saying button:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(to right, rgb(239, 109, 3), rgb(255, 4, 0));
+}

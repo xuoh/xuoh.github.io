@@ -1,0 +1,333 @@
+/* planet.css */
+
+/* 基本重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* 行星容器样式 */
+.planet-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  color: #fff;
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* 标题部分 */
+.planet-header {
+  text-align: center;
+  margin-bottom: 40px;
+  position: relative;
+}
+
+.planet-header h1 {
+  font-size: 2.5em;
+  position: relative;
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  margin-bottom: 10px;
+}
+
+.planet-header p {
+  font-size: 1.1em;
+  color: #ccc;
+}
+
+/* 扫描线效果 */
+.cosmic-scanner {
+  width: 100%;
+  height: 2px;
+  background: rgba(255, 215, 0, 0.2);
+  margin-top: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.scanner-line {
+  width: 20%;
+  height: 100%;
+  background: linear-gradient(to right, transparent, #ffd700, transparent);
+  position: absolute;
+  animation: scan 3s linear infinite;
+}
+
+@keyframes scan {
+  0% {
+    left: -20%;
+  }
+  50% {
+    left: 100%;
+  }
+  100% {
+    left: -20%;
+  }
+}
+
+/* 太阳系轨道样式 */
+.solar-system {
+  width: 100%;
+  height: 400px;
+  position: relative;
+  margin: 40px 0;
+  overflow: hidden;
+}
+
+/* 太阳样式 */
+.sun-center {
+  width: 60px;
+  height: 60px;
+  background: radial-gradient(circle, #ffd700, #ff8c00);
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  z-index: 20; /* 确保太阳在最上层 */
+  pointer-events: auto; /* 确保可以点击 */
+}
+
+.sun-center:hover {
+  transform: translate(-50%, -50%) scale(1.1);
+  box-shadow: 0 0 50px rgba(255, 215, 0, 0.8);
+}
+
+.sun-active {
+  transform: translate(-50%, -50%) scale(1.1);
+  box-shadow: 0 0 50px rgba(255, 215, 0, 0.8);
+}
+
+/* 轨道样式 */
+.orbit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: border-color 0.3s ease;
+  pointer-events: none; /* 轨道本身不可点击，仅轨道点可点击 */
+}
+
+.orbit-active {
+  border-color: rgba(255, 215, 0, 0.8);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+/* 定义每个轨道的尺寸 */
+.orbit-1 {
+  width: 120px;
+  height: 120px;
+  animation: orbit 8s linear infinite;
+}
+.orbit-2 {
+  width: 160px;
+  height: 160px;
+  animation: orbit 12s linear infinite;
+}
+.orbit-3 {
+  width: 200px;
+  height: 200px;
+  animation: orbit 16s linear infinite;
+}
+.orbit-4 {
+  width: 240px;
+  height: 240px;
+  animation: orbit 20s linear infinite;
+}
+.orbit-5 {
+  width: 280px;
+  height: 280px;
+  animation: orbit 24s linear infinite;
+}
+.orbit-6 {
+  width: 320px;
+  height: 320px;
+  animation: orbit 28s linear infinite;
+}
+.orbit-7 {
+  width: 360px;
+  height: 360px;
+  animation: orbit 32s linear infinite;
+}
+.orbit-8 {
+  width: 400px;
+  height: 400px;
+  animation: orbit 36s linear infinite;
+}
+
+/* 轨道上的点（行星）样式 */
+.orbit-dot {
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  z-index: 10; /* 确保在轨道之上 */
+  pointer-events: auto; /* 确保可以点击 */
+}
+
+.orbit-dot:hover {
+  transform: translateX(-50%) scale(1.3);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+/* 为不同行星设置不同颜色 */
+[data-planet="mercury"] {
+  background: #8c8c8c;
+}
+[data-planet="venus"] {
+  background: #ffd700;
+}
+[data-planet="earth"] {
+  background: #00b7eb;
+}
+[data-planet="mars"] {
+  background: #ff4040;
+}
+[data-planet="jupiter"] {
+  background: #ffa500;
+}
+[data-planet="saturn"] {
+  background: #cd7f32;
+}
+[data-planet="uranus"] {
+  background: #66cccc;
+}
+[data-planet="neptune"] {
+  background: #4169e1;
+}
+
+/* 轨道动画 */
+@keyframes orbit {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* 行星卡片网格布局 */
+.planets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+  padding: 20px;
+}
+
+/* 行星卡片样式 */
+/* 行星卡片样式 */
+.planet-card {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  animation: float 6s ease-in-out infinite; /* 添加浮动动画 */
+}
+
+.planet-card:hover {
+  transform: translateY(-10px) scale(1.02); /* 悬停时放大并上移 */
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.2);
+  animation-play-state: paused; /* 悬停时暂停浮动动画 */
+}
+
+.planet-card.highlight {
+  transform: translateY(-10px) scale(1.02);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.6), 0 15px 35px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 215, 0, 0.5);
+  animation-play-state: paused; /* 高亮时也暂停浮动动画 */
+}
+
+/* 浮动动画关键帧 */
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  }
+  50% {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 25px rgba(0, 0, 0, 0.3);
+  }
+  100% {
+    transform: translateY(0px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* 太阳卡片特殊样式 */
+.sun-card {
+  background: rgba(255, 215, 0, 0.2);
+  animation: float 5s ease-in-out infinite; /* 太阳卡片浮动速度稍快 */
+}
+
+/* 行星图片容器 */
+.planet-image-container {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  position: relative;
+}
+
+.planet-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.planet-card:hover .planet-image {
+  transform: scale(1.1);
+}
+
+/* 行星名称 */
+.planet-name {
+  padding: 15px;
+  font-size: 1.5em;
+  text-align: center;
+  color: #fff;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* 行星信息 */
+.planet-info {
+  padding: 20px;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.planet-card:hover .planet-info {
+  opacity: 1 !important; /* 添加!important提高优先级 */
+  transform: translateY(0) !important; /* 添加!important提高优先级 */
+}
+
+.planet-fact {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 0.9em;
+  color: #ddd;
+}
+
+.planet-info p {
+  margin-top: 10px;
+  line-height: 1.5;
+  color: #eee;
+}
