@@ -1,6 +1,6 @@
 /**
  * Xuoh 个人主页 - 主脚本
- * 版本: 3.0 (优化版)
+ * 版本: 3.1 (流畅优化)
  * 使用 IIFE 模式封装，避免全局变量污染
  */
 
@@ -9,15 +9,19 @@
 
   // ==================== 配置常量 ====================
   const CONFIG = {
-    PARTICLE_COUNT_DESKTOP: 30,
-    PARTICLE_COUNT_MOBILE: 15,
-    CURSOR_SPEED: 0.2,
+    PARTICLE_COUNT_DESKTOP: 20,
+    PARTICLE_COUNT_MOBILE: 10,
+    STAR_COUNT_DESKTOP: 80,
+    STAR_COUNT_MOBILE: 40,
+    CURSOR_SPEED: 0.4,
     MOBILE_BREAKPOINT: 768,
     HITOKOTO_TIMEOUT: 8000,
     CLOCK_UPDATE_INTERVAL: 1000,
     DEBOUNCE_DELAY: 250,
     EASTER_EGG_CLICKS: 5,
     SWIPE_THRESHOLD: 100,
+    LOADER_MIN_MS: 350,
+    LOADER_FADE_MS: 400,
     HITOKOTO_API: 'https://v1.hitokoto.cn/',
     BLOG_URL: 'https://blog.xu.uy',
     NAV_URL: 'https://hao.xu.uy',
@@ -85,14 +89,74 @@
     },
   };
 
+  // ==================== 统一运动循环（光标 + 视差共用 rAF） ====================
+  const MotionSystem = {
+    mouseX: 0,
+    mouseY: 0,
+    rafId: null,
+    isActive: false,
+    hasPosition: false,
+
+    init() {
+      if (Utils.isMobile() || Utils.isTouchDevice()) {
+        return;
+      }
+
+      this.isActive = true;
+
+      document.addEventListener('mousemove', (e) => {
+        this.mouseX = e.clientX;
+        this.mouseY = e.clientY;
+        this.hasPosition = true;
+      }, { passive: true });
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          this.pause();
+        } else {
+          this.resume();
+        }
+      });
+
+      this.loop();
+    },
+
+    loop() {
+      if (!this.isActive) return;
+
+      if (this.hasPosition) {
+        CursorSystem.tick(this.mouseX, this.mouseY);
+        ParallaxSystem.tick(this.mouseX, this.mouseY);
+      }
+
+      this.rafId = requestAnimationFrame(() => this.loop());
+    },
+
+    pause() {
+      if (this.rafId) {
+        cancelAnimationFrame(this.rafId);
+        this.rafId = null;
+      }
+    },
+
+    resume() {
+      if (this.isActive && !this.rafId) {
+        this.loop();
+      }
+    },
+
+    destroy() {
+      this.pause();
+      this.isActive = false;
+    },
+  };
+
   // ==================== 光标系统 ====================
   const CursorSystem = {
     cursor: null,
-    mouseX: 0,
-    mouseY: 0,
     cursorX: 0,
     cursorY: 0,
-    rafId: null,
+    isReady: false,
     isActive: false,
 
     init() {
@@ -105,20 +169,9 @@
 
       this.isActive = true;
       this.bindEvents();
-      this.animate();
     },
 
     bindEvents() {
-      document.addEventListener('mousemove', (e) => {
-        this.mouseX = e.clientX;
-        this.mouseY = e.clientY;
-
-        if (this.cursorX === 0 && this.cursorY === 0) {
-          this.cursorX = this.mouseX;
-          this.cursorY = this.mouseY;
-        }
-      }, { passive: true });
-
       document.addEventListener('mousedown', () => {
         this.cursor?.classList.add('click');
       }, { passive: true });
@@ -138,45 +191,29 @@
           this.cursor?.classList.remove('hover');
         }
       }, { passive: true });
-
-      document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-          this.pause();
-        } else {
-          this.resume();
-        }
-      });
     },
 
-    animate() {
+    tick(mouseX, mouseY) {
       if (!this.isActive || !this.cursor) return;
 
-      const distX = this.mouseX - this.cursorX;
-      const distY = this.mouseY - this.cursorY;
-
-      this.cursorX += distX * CONFIG.CURSOR_SPEED;
-      this.cursorY += distY * CONFIG.CURSOR_SPEED;
-
-      this.cursor.style.transform = `translate3d(${this.cursorX}px, ${this.cursorY}px, 0) translate(-50%, -50%)`;
-
-      this.rafId = requestAnimationFrame(() => this.animate());
-    },
-
-    pause() {
-      if (this.rafId) {
-        cancelAnimationFrame(this.rafId);
-        this.rafId = null;
+      if (!this.isReady) {
+        this.cursorX = mouseX;
+        this.cursorY = mouseY;
+        this.isReady = true;
+      } else {
+        this.cursorX += (mouseX - this.cursorX) * CONFIG.CURSOR_SPEED;
+        this.cursorY += (mouseY - this.cursorY) * CONFIG.CURSOR_SPEED;
       }
+
+      this.cursor.style.transform =
+        `translate3d(${this.cursorX}px, ${this.cursorY}px, 0) translate(-50%, -50%)`;
     },
 
     resume() {
-      if (this.isActive && !this.rafId) {
-        this.animate();
-      }
+      // 由 MotionSystem 统一 resume
     },
 
     destroy() {
-      this.pause();
       this.isActive = false;
     },
   };
@@ -185,8 +222,12 @@
   const StarSystem = {
     container: null,
     stars: [],
+    ready: false,
 
     init() {
+      if (this.ready) return;
+      this.ready = true;
+
       // 创建星空容器
       this.container = document.createElement('div');
       this.container.className = 'stars';
@@ -198,7 +239,9 @@
     },
 
     createStars() {
-      const starCount = Utils.isMobile() ? 80 : 150;
+      const starCount = Utils.isMobile()
+        ? CONFIG.STAR_COUNT_MOBILE
+        : CONFIG.STAR_COUNT_DESKTOP;
       const fragment = document.createDocumentFragment();
 
       for (let i = 0; i < starCount; i++) {
@@ -250,7 +293,9 @@
       this.stars = [];
       if (this.container) {
         this.container.remove();
+        this.container = null;
       }
+      this.ready = false;
     },
   };
 
@@ -258,11 +303,14 @@
   const ParticleSystem = {
     container: null,
     particles: [],
+    ready: false,
 
     init() {
+      if (this.ready) return;
       this.container = Utils.getElement('#particles');
       if (!this.container) return;
 
+      this.ready = true;
       this.createParticles();
       this.bindEvents();
     },
@@ -311,6 +359,7 @@
     destroy() {
       this.particles.forEach(p => p.remove());
       this.particles = [];
+      this.ready = false;
     },
   };
 
@@ -381,7 +430,8 @@
 
       if (!this.hitokotoElement || !this.fromElement) return;
 
-      setTimeout(() => this.fetch(), 500);
+      // 首屏尽早请求，不再额外延迟
+      this.fetch();
       this.bindNetworkEvents();
     },
 
@@ -572,6 +622,10 @@
   // ==================== Logo 交互系统 ====================
   const LogoSystem = {
     logoWrapper: null,
+    pendingX: 0,
+    pendingY: 0,
+    rafId: null,
+    hovering: false,
 
     init() {
       this.logoWrapper = Utils.getElement('.logo-wrapper');
@@ -582,20 +636,37 @@
 
     bindEvents() {
       this.logoWrapper.addEventListener('mousemove', (e) => {
-        const rect = this.logoWrapper.getBoundingClientRect();
-        const x = e.clientX - rect.left - rect.width / 2;
-        const y = e.clientY - rect.top - rect.height / 2;
+        this.pendingX = e.clientX;
+        this.pendingY = e.clientY;
+        this.hovering = true;
 
-        const rotateX = (y / rect.height) * 20;
-        const rotateY = (x / rect.width) * 20;
-
-        this.logoWrapper.style.transform =
-          `perspective(1000px) rotateX(${-rotateX}deg) rotateY(${rotateY}deg)`;
-      });
+        if (!this.rafId) {
+          this.rafId = requestAnimationFrame(() => this.applyTilt());
+        }
+      }, { passive: true });
 
       this.logoWrapper.addEventListener('mouseleave', () => {
+        this.hovering = false;
+        if (this.rafId) {
+          cancelAnimationFrame(this.rafId);
+          this.rafId = null;
+        }
         this.logoWrapper.style.transform = 'perspective(1000px) rotateX(0) rotateY(0)';
       });
+    },
+
+    applyTilt() {
+      this.rafId = null;
+      if (!this.hovering || !this.logoWrapper) return;
+
+      const rect = this.logoWrapper.getBoundingClientRect();
+      const x = this.pendingX - rect.left - rect.width / 2;
+      const y = this.pendingY - rect.top - rect.height / 2;
+      const rotateX = (y / rect.height) * 20;
+      const rotateY = (x / rect.width) * 20;
+
+      this.logoWrapper.style.transform =
+        `perspective(1000px) rotateX(${-rotateX}deg) rotateY(${rotateY}deg)`;
     },
   };
 
@@ -607,55 +678,56 @@
     },
   };
 
-  // ==================== 3D视差系统 ====================
+  // ==================== 3D视差系统（由 MotionSystem rAF 驱动） ====================
   const ParallaxSystem = {
     container: null,
     stars: null,
+    isActive: false,
+    targetOffsetX: 0,
+    targetOffsetY: 0,
+    currentOffsetX: 0,
+    currentOffsetY: 0,
+    LERP: 0.08,
 
     init() {
-      if (Utils.isMobile()) return; // 移动端禁用视差效果
+      if (this.isActive) return;
+      if (Utils.isMobile() || Utils.isTouchDevice()) return;
 
       this.container = Utils.getElement('.container');
       this.stars = Utils.getElement('.stars');
-
       if (!this.container) return;
 
-      this.bindEvents();
+      this.isActive = true;
+
+      // 鼠标离开时平滑归零
+      document.addEventListener('mouseleave', () => {
+        this.targetOffsetX = 0;
+        this.targetOffsetY = 0;
+      });
     },
 
-    bindEvents() {
-      document.addEventListener('mousemove', (e) => {
-        const mouseX = e.clientX / window.innerWidth;
-        const mouseY = e.clientY / window.innerHeight;
+    tick(mouseX, mouseY) {
+      if (!this.isActive) return;
 
-        // 计算偏移量（中心点为0）
-        const offsetX = (mouseX - 0.5) * 2;
-        const offsetY = (mouseY - 0.5) * 2;
+      const width = window.innerWidth || 1;
+      const height = window.innerHeight || 1;
+      this.targetOffsetX = (mouseX / width - 0.5) * 2;
+      this.targetOffsetY = (mouseY / height - 0.5) * 2;
 
-        // 星空轻微移动
-        if (this.stars) {
-          const starMoveX = offsetX * 15;
-          const starMoveY = offsetY * 15;
-          this.stars.style.transform = `translate(${starMoveX}px, ${starMoveY}px)`;
-        }
+      this.currentOffsetX += (this.targetOffsetX - this.currentOffsetX) * this.LERP;
+      this.currentOffsetY += (this.targetOffsetY - this.currentOffsetY) * this.LERP;
 
-        // 主容器3D倾斜
-        if (this.container) {
-          const rotateX = offsetY * -3; // 上下倾斜（减小幅度）
-          const rotateY = offsetX * 3;  // 左右倾斜（减小幅度）
-          this.container.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-        }
-      }, { passive: true });
+      if (this.stars) {
+        this.stars.style.transform =
+          `translate3d(${this.currentOffsetX * 15}px, ${this.currentOffsetY * 15}px, 0)`;
+      }
 
-      // 鼠标离开时恢复
-      document.addEventListener('mouseleave', () => {
-        if (this.stars) {
-          this.stars.style.transform = 'translate(0, 0)';
-        }
-        if (this.container) {
-          this.container.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg)';
-        }
-      });
+      if (this.container) {
+        const rotateX = this.currentOffsetY * -3;
+        const rotateY = this.currentOffsetX * 3;
+        this.container.style.transform =
+          `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+      }
     },
   };
 
@@ -892,15 +964,57 @@
 
   // ==================== 加载器系统 ====================
   const LoaderSystem = {
+    startTime: 0,
+    hidden: false,
+
     init() {
-      window.addEventListener('load', () => {
-        setTimeout(() => {
-          const loader = Utils.getElement('.loader');
-          if (loader) {
+      this.startTime = performance.now();
+
+      const onReady = () => this.hide();
+
+      if (document.readyState === 'complete') {
+        onReady();
+      } else {
+        window.addEventListener('load', onReady, { once: true });
+      }
+
+      // 兜底：避免 load 事件异常导致遮罩一直不消失
+      setTimeout(() => this.hide(), 2500);
+    },
+
+    hide() {
+      if (this.hidden) return;
+      this.hidden = true;
+
+      const elapsed = performance.now() - this.startTime;
+      const wait = Math.max(0, CONFIG.LOADER_MIN_MS - elapsed);
+
+      setTimeout(() => {
+        const loader = Utils.getElement('.loader');
+        if (loader) {
+          loader.classList.add('is-hidden');
+          setTimeout(() => {
             loader.style.display = 'none';
-          }
-        }, 1500);
-      });
+          }, CONFIG.LOADER_FADE_MS);
+        }
+
+        // Loader 结束后再挂载较重的视觉效果，减少首屏争抢
+        this.deferHeavyEffects();
+      }, wait);
+    },
+
+    deferHeavyEffects() {
+      const run = () => {
+        Utils.tryCatch(() => StarSystem.init(), '星空初始化失败');
+        Utils.tryCatch(() => ParticleSystem.init(), '粒子初始化失败');
+        Utils.tryCatch(() => ParallaxSystem.init(), '视差初始化失败');
+      };
+
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(run, { timeout: 400 });
+      } else {
+        setTimeout(run, 50);
+      }
     },
   };
 
@@ -966,9 +1080,9 @@
         ClockSystem.resume();
       }
 
-      // 恢复光标动画
-      if (CursorSystem.resume) {
-        CursorSystem.resume();
+      // 恢复统一运动循环
+      if (MotionSystem.resume) {
+        MotionSystem.resume();
       }
     },
   };
@@ -1027,7 +1141,7 @@
         '%c制作: Xuoh | 技术栈: HTML5 + CSS3 + Vanilla JS',
         'color: #a78bfa; font-size: 12px;'
       );
-      console.log('%c版本: 3.0 (优化版)', 'color: #4ade80; font-size: 12px;');
+      console.log('%c版本: 3.1 (流畅优化)', 'color: #4ade80; font-size: 12px;');
     },
   };
 
@@ -1040,11 +1154,9 @@
       // 内容保护系统（优先初始化）
       ContentProtection.init();
 
-      // 初始化所有系统
-      StarSystem.init();          // 星空效果
-      ParallaxSystem.init();      // 3D视差效果
+      // 首屏关键系统先启动；星空/粒子/视差由 Loader 结束后延迟挂载
       CursorSystem.init();
-      ParticleSystem.init();
+      MotionSystem.init();
       ClockSystem.init();
       HitokotoSystem.init();
       NavigationSystem.init();
@@ -1064,23 +1176,10 @@
 
       // 显示控制台艺术
       ConsoleArt.show();
-
-      // 添加平滑过渡
-      Utils.getElements('a, button').forEach(element => {
-        element.style.transition = 'all 0.3s ease';
-      });
-
-      // 页面进入动画
-      document.addEventListener('DOMContentLoaded', () => {
-        document.body.style.opacity = '0';
-        setTimeout(() => {
-          document.body.style.transition = 'opacity 0.5s ease';
-          document.body.style.opacity = '1';
-        }, 100);
-      });
     },
 
     destroy() {
+      MotionSystem.destroy();
       StarSystem.destroy();
       CursorSystem.destroy();
       ParticleSystem.destroy();

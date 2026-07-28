@@ -50,16 +50,22 @@ body {
 /* ==================== 自定义光标 ==================== */
 .cursor {
   position: fixed;
+  top: 0;
+  left: 0;
   width: var(--cursor-size);
   height: var(--cursor-size);
   border-radius: 50%;
   pointer-events: none;
   z-index: 9999;
   will-change: transform;
-  transition: all 0.15s var(--transition-smooth);
+  /* 位置由 JS transform 驱动，禁止 transition，避免拖尾延迟 */
+  transition: width 0.18s var(--transition-smooth),
+    height 0.18s var(--transition-smooth),
+    background 0.18s ease;
   background: var(--primary-gradient);
   padding: 2px;
   transform: translate3d(-100px, -100px, 0) translate(-50%, -50%);
+  contain: layout style;
 }
 
 .cursor::before {
@@ -114,23 +120,13 @@ body {
   width: 15px;
   height: 15px;
   background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  transition: all 0.1s ease;
 }
 
 .cursor.hover {
   width: var(--cursor-hover-size);
   height: var(--cursor-hover-size);
   background: var(--primary-gradient);
-  animation: rotate-gradient 3s linear infinite;
-}
-
-@keyframes rotate-gradient {
-  0% {
-    filter: hue-rotate(0deg);
-  }
-  100% {
-    filter: hue-rotate(360deg);
-  }
+  /* 去掉持续 hue-rotate，减少合成层开销 */
 }
 
 /* ==================== 背景容器 ==================== */
@@ -144,6 +140,7 @@ body {
   z-index: -3;
   backface-visibility: hidden;
   transform: translateZ(0);
+  contain: strict;
 }
 
 .background::after {
@@ -159,36 +156,17 @@ body {
     rgba(20, 10, 40, 0.7) 50%,
     rgba(10, 20, 50, 0.8) 100%
   );
-  animation: gradient-shift 15s ease infinite;
+  /* 仅做透明度呼吸，避免每帧重算 gradient */
+  animation: gradient-breathe 12s ease-in-out infinite;
 }
 
-@keyframes gradient-shift {
-  0%, 100% {
-    opacity: 0.8;
-    background: linear-gradient(
-      135deg,
-      rgba(10, 10, 30, 0.8) 0%,
-      rgba(20, 10, 40, 0.7) 50%,
-      rgba(10, 20, 50, 0.8) 100%
-    );
-  }
-  33% {
+@keyframes gradient-breathe {
+  0%,
+  100% {
     opacity: 0.85;
-    background: linear-gradient(
-      135deg,
-      rgba(20, 10, 40, 0.8) 0%,
-      rgba(10, 20, 50, 0.7) 50%,
-      rgba(30, 10, 40, 0.8) 100%
-    );
   }
-  66% {
-    opacity: 0.75;
-    background: linear-gradient(
-      135deg,
-      rgba(10, 20, 50, 0.8) 0%,
-      rgba(30, 10, 40, 0.7) 50%,
-      rgba(10, 10, 30, 0.8) 100%
-    );
+  50% {
+    opacity: 0.7;
   }
 }
 
@@ -202,6 +180,8 @@ body {
   z-index: -2;
   pointer-events: none;
   overflow: hidden;
+  will-change: transform;
+  contain: layout style;
 }
 
 .star {
@@ -251,6 +231,7 @@ body {
   z-index: -1;
   pointer-events: none;
   overflow: hidden;
+  contain: layout style;
 }
 
 .particle {
@@ -371,9 +352,10 @@ body {
   justify-content: center;
   align-items: center;
   padding: 20px;
-  animation: fadeIn 1s ease-out 0.5s both;
-  transition: transform 0.1s ease-out;
+  animation: fadeIn 0.7s ease-out 0.2s both;
+  /* transform 由视差 rAF 驱动，勿加 transition，否则拖泥带水 */
   transform-style: preserve-3d;
+  will-change: transform;
   overflow: hidden; /* 防止内容溢出 */
 }
 
@@ -388,7 +370,7 @@ body {
 .logo-wrapper {
   position: relative;
   display: inline-block;
-  transition: transform 0.3s ease;
+  will-change: transform;
 }
 
 .logo {
@@ -418,20 +400,10 @@ body {
   filter: blur(20px);
   transition: opacity 0.4s ease;
   z-index: 1;
-  animation: rotate-hue 3s linear infinite;
-}
-
-@keyframes rotate-hue {
-  0% {
-    filter: blur(20px) hue-rotate(0deg);
-  }
-  100% {
-    filter: blur(20px) hue-rotate(360deg);
-  }
 }
 
 .logo-wrapper:hover::before {
-  opacity: 0.6;
+  opacity: 0.55;
 }
 
 .logo-wrapper:hover .logo {
@@ -717,13 +689,20 @@ body {
   justify-content: center;
   align-items: center;
   z-index: 10000;
-  animation: fadeOut 0.5s ease-out 1.5s forwards;
+  opacity: 1;
+  transition: opacity 0.4s ease-out;
+  will-change: opacity;
+}
+
+.loader.is-hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .loader-text {
   font-size: 48px;
   font-weight: bold;
-  animation: pulse 1.5s ease-in-out infinite;
+  animation: pulse 1.2s ease-in-out infinite;
   background: var(--secondary-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -741,8 +720,9 @@ body {
 
 .loader-progress {
   height: 100%;
+  width: 0;
   background: linear-gradient(90deg, #64c8ff, #fff);
-  animation: progress 1.5s ease-out forwards;
+  animation: progress 0.6s ease-out forwards;
 }
 
 @keyframes pulse {
@@ -762,13 +742,6 @@ body {
   }
   100% {
     width: 100%;
-  }
-}
-
-@keyframes fadeOut {
-  to {
-    opacity: 0;
-    pointer-events: none;
   }
 }
 

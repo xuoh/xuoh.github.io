@@ -8,6 +8,8 @@
     <meta name="keywords" content="Xuoh,个人主页,博客,技术分享" />
     <meta name="author" content="Xuoh" />
     <title>Xuoh - 个人主页</title>
+    <link rel="preload" href="./images/bg.png" as="image" />
+    <link rel="preload" href="./images/x.jpg" as="image" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -70,7 +72,9 @@
             alt="Xuoh的头像"
             class="logo"
             draggable="false"
-            loading="lazy"
+            loading="eager"
+            fetchpriority="high"
+            decoding="async"
           />
         </div>
         <h1 class="site-name">Xuoh</h1>
@@ -156,6 +160,6 @@
       </section>
     </main>
 
-    <script src="./main.js"></script>
+    <script src="./main.js" defer></script>
   </body>
 </html>
