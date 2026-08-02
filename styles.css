@@ -147,7 +147,7 @@ body {
   width: 100%;
   height: 100%;
   z-index: -3;
-  background: url("./images/bg.png") center/cover no-repeat, #0b0c0f;
+  background: url("./images/bg.webp") center/cover no-repeat, #0b0c0f;
   backface-visibility: hidden;
   transform: translateZ(0);
   /* 极慢的呼吸缩放：让影像"活着"，幅度小到不易察觉 */
