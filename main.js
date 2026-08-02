@@ -1,6 +1,6 @@
 /**
  * Xuoh 个人主页 - 主脚本
- * 版本: 3.5 (全静止背景)
+ * 版本: 4.0 (墨金 · 设计改版)
  * 使用 IIFE 模式封装，避免全局变量污染
  */
 
@@ -9,10 +9,8 @@
 
   // ==================== 配置常量 ====================
   const CONFIG = {
-    PARTICLE_COUNT_DESKTOP: 20,
-    PARTICLE_COUNT_MOBILE: 10,
-    STAR_COUNT_DESKTOP: 80,
-    STAR_COUNT_MOBILE: 40,
+    STAR_COUNT_DESKTOP: 48,
+    STAR_COUNT_MOBILE: 24,
     MOBILE_BREAKPOINT: 768,
     HITOKOTO_TIMEOUT: 8000,
     CLOCK_UPDATE_INTERVAL: 1000,
@@ -324,9 +322,9 @@
         star.style.left = `${Math.random() * 100}%`;
         star.style.top = `${Math.random() * 100}%`;
 
-        // 随机闪烁速度
-        star.style.animationDuration = `${Math.random() * 3 + 2}s`;
-        star.style.animationDelay = `${Math.random() * 3}s`;
+        // 慢速呼吸式闪烁，安静不抢戏
+        star.style.animationDuration = `${Math.random() * 3.5 + 3.5}s`;
+        star.style.animationDelay = `${Math.random() * 4}s`;
 
         fragment.appendChild(star);
         this.stars.push(star);
@@ -357,70 +355,6 @@
         this.container.remove();
         this.container = null;
       }
-      this.ready = false;
-    },
-  };
-
-  // ==================== 粒子系统 ====================
-  const ParticleSystem = {
-    container: null,
-    particles: [],
-    ready: false,
-
-    init() {
-      if (this.ready) return;
-      this.container = Utils.getElement('#particles');
-      if (!this.container) return;
-
-      this.ready = true;
-      this.createParticles();
-      this.bindEvents();
-    },
-
-    createParticles() {
-      const count = Utils.isMobile()
-        ? CONFIG.PARTICLE_COUNT_MOBILE
-        : CONFIG.PARTICLE_COUNT_DESKTOP;
-
-      const fragment = document.createDocumentFragment();
-
-      for (let i = 0; i < count; i++) {
-        const particle = document.createElement('div');
-        particle.className = 'particle';
-
-        const size = Math.random() * 5 + 2;
-        particle.style.width = `${size}px`;
-        particle.style.height = `${size}px`;
-        particle.style.left = `${Math.random() * 100}%`;
-        particle.style.animationDuration = `${Math.random() * 10 + 10}s`;
-        particle.style.animationDelay = `${Math.random() * 5}s`;
-        particle.style.setProperty('--x-move', `${Math.random() * 200 - 100}px`);
-
-        fragment.appendChild(particle);
-        this.particles.push(particle);
-      }
-
-      this.container.appendChild(fragment);
-    },
-
-    bindEvents() {
-      document.addEventListener('visibilitychange', () => {
-        const state = document.hidden ? 'paused' : 'running';
-        this.particles.forEach(p => {
-          p.style.animationPlayState = state;
-        });
-      });
-    },
-
-    resume() {
-      this.particles.forEach(p => {
-        p.style.animationPlayState = 'running';
-      });
-    },
-
-    destroy() {
-      this.particles.forEach(p => p.remove());
-      this.particles = [];
       this.ready = false;
     },
   };
@@ -762,7 +696,7 @@
     },
 
     trigger() {
-      console.log('%c🎉 你发现了隐藏彩蛋！', 'color: #f093fb; font-size: 24px; font-weight: bold;');
+      console.log('%c🎉 你发现了隐藏彩蛋！', 'color: #c9a87c; font-size: 24px; font-weight: bold;');
       document.body.style.animation = 'rainbow 2s linear';
       setTimeout(() => {
         document.body.style.animation = '';
@@ -776,7 +710,7 @@
       Utils.getElements('img').forEach(img => {
         img.addEventListener('error', function() {
           console.warn('图片加载失败:', this.src);
-          this.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="150" height="150"%3E%3Crect fill="%23667eea" width="150" height="150"/%3E%3Ctext fill="%23fff" font-size="60" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EX%3C/text%3E%3C/svg%3E';
+          this.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="150" height="150"%3E%3Crect fill="%2314161a" width="150" height="150"/%3E%3Ctext fill="%23c9a87c" font-family="Georgia, serif" font-size="64" x="50%25" y="50%25" text-anchor="middle" dy=".36em"%3EX%3C/text%3E%3C/svg%3E';
         });
       });
     },
@@ -957,7 +891,6 @@
     deferHeavyEffects() {
       const run = () => {
         Utils.tryCatch(() => StarSystem.init(), '星空初始化失败');
-        Utils.tryCatch(() => ParticleSystem.init(), '粒子初始化失败');
       };
 
       if ('requestIdleCallback' in window) {
@@ -1020,11 +953,6 @@
         StarSystem.resume();
       }
 
-      // 恢复粒子动画
-      if (ParticleSystem.resume) {
-        ParticleSystem.resume();
-      }
-
       // 恢复时钟
       if (ClockSystem.resume) {
         ClockSystem.resume();
@@ -1058,12 +986,11 @@
         '时钟元素': !!Utils.getElement('#time'),
         '一言元素': !!Utils.getElement('#hitokoto'),
         '导航元素': !!Utils.getElement('.navbar'),
-        '粒子容器': !!Utils.getElement('#particles'),
       };
 
       console.log(
         '%c=== 页面元素检查 ===',
-        'color: #667eea; font-size: 16px; font-weight: bold;'
+        'color: #c9a87c; font-size: 16px; font-weight: bold;'
       );
 
       Object.entries(checks).forEach(([name, status]) => {
@@ -1077,21 +1004,21 @@
     show() {
       console.log(
         '%c欢迎来到 Xuoh 的个人主页！',
-        'color: #667eea; font-size: 24px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);'
+        'color: #c9a87c; font-size: 24px; font-weight: bold;'
       );
       console.log(
         '%c按 R 键可以刷新一言哦~',
-        'color: #64c8ff; font-size: 16px; font-weight: bold;'
+        'color: #eae7e0; font-size: 16px;'
       );
       console.log(
         '%c✨ 页面初始化完成！所有功能已就绪',
-        'color: #64c8ff; font-size: 16px; font-weight: bold;'
+        'color: #eae7e0; font-size: 16px;'
       );
       console.log(
         '%c制作: Xuoh | 技术栈: HTML5 + CSS3 + Vanilla JS',
-        'color: #a78bfa; font-size: 12px;'
+        'color: #8a8a86; font-size: 12px;'
       );
-      console.log('%c版本: 3.5 (全静止背景)', 'color: #4ade80; font-size: 12px;');
+      console.log('%c版本: 4.0 (墨金 · 设计改版)', 'color: #c9a87c; font-size: 12px;');
     },
   };
 
@@ -1131,7 +1058,6 @@
       MotionSystem.destroy();
       StarSystem.destroy();
       CursorSystem.destroy();
-      ParticleSystem.destroy();
       ClockSystem.destroy();
       HitokotoSystem.destroy();
     },
