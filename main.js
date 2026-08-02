@@ -13,6 +13,7 @@
     STAR_COUNT_MOBILE: 36,
     MOBILE_BREAKPOINT: 768,
     HITOKOTO_TIMEOUT: 8000,
+    HITOKOTO_AUTO_INTERVAL: 5000,
     CLOCK_UPDATE_INTERVAL: 1000,
     DEBOUNCE_DELAY: 250,
     EASTER_EGG_CLICKS: 5,
@@ -209,6 +210,15 @@
         this.setVisible(false);
         this.hasPosition = false;
       });
+
+      // 窗口失焦（如点击 mailto 跳到邮件客户端）时复位所有状态：
+      // 失焦期间 mouseup/mouseout 不会派发，否则 press/hover 会永久残留
+      window.addEventListener('blur', () => {
+        this.setState('press', false);
+        this.setState('hover', false);
+        this.setVisible(false);
+        this.hasPosition = false;
+      });
     },
 
     setState(name, on) {
@@ -359,6 +369,86 @@
     },
   };
 
+  // ==================== 流星系统（偶发划过，安静点缀） ====================
+  const MeteorSystem = {
+    timerId: null,
+
+    init() {
+      const reduced =
+        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+      if (reduced) return;
+      this.schedule();
+    },
+
+    schedule() {
+      // 4~12 秒随机一颗，避免规律感
+      const delay = 4000 + Math.random() * 8000;
+      this.timerId = setTimeout(() => {
+        if (!document.hidden) this.spawn();
+        this.schedule();
+      }, delay);
+    },
+
+    spawn() {
+      const m = document.createElement('div');
+      m.className = 'meteor';
+      m.setAttribute('aria-hidden', 'true');
+      // 只从画面中上部出发，往左下划，不穿过中央内容区下方
+      m.style.top = `${4 + Math.random() * 38}%`;
+      m.style.left = `${35 + Math.random() * 60}%`;
+      m.style.animationDuration = `${1.3 + Math.random() * 0.9}s`;
+      document.body.appendChild(m);
+      m.addEventListener('animationend', () => m.remove(), { once: true });
+    },
+
+    destroy() {
+      if (this.timerId) {
+        clearTimeout(this.timerId);
+        this.timerId = null;
+      }
+    },
+  };
+
+  // ==================== 微尘系统（地平线金色光点上浮） ====================
+  const DustSystem = {
+    container: null,
+
+    init() {
+      const reduced =
+        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+      if (reduced) return;
+
+      this.container = document.createElement('div');
+      this.container.className = 'dust-field';
+      this.container.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(this.container);
+
+      const count = Utils.isMobile() ? 8 : 16;
+      const fragment = document.createDocumentFragment();
+
+      for (let i = 0; i < count; i++) {
+        const d = document.createElement('i');
+        d.className = 'dust';
+        // 聚在画面下部（地平线暖光附近）
+        d.style.left = `${8 + Math.random() * 84}%`;
+        d.style.bottom = `${2 + Math.random() * 16}%`;
+        d.style.setProperty('--dx', `${Math.round(Math.random() * 60 - 30)}px`);
+        d.style.animationDuration = `${9 + Math.random() * 9}s`;
+        d.style.animationDelay = `${Math.random() * 12}s`;
+        fragment.appendChild(d);
+      }
+
+      this.container.appendChild(fragment);
+    },
+
+    destroy() {
+      if (this.container) {
+        this.container.remove();
+        this.container = null;
+      }
+    },
+  };
+
   // ==================== 时钟系统 ====================
   const ClockSystem = {
     timeElement: null,
@@ -419,6 +509,7 @@
     fromElement: null,
     isLoading: false,
     controller: null,
+    autoId: null,
 
     init() {
       this.hitokotoElement = Utils.getElement('#hitokoto');
@@ -428,16 +519,35 @@
 
       // 首屏尽早请求，不再额外延迟
       this.fetch();
+      this.startAuto();
       this.bindNetworkEvents();
     },
 
-    async fetch() {
+    // 自动轮换：每隔固定时间静默换一句；页面不可见时跳过
+    startAuto() {
+      this.stopAuto();
+      this.autoId = setInterval(() => {
+        if (!document.hidden) this.fetch(true);
+      }, CONFIG.HITOKOTO_AUTO_INTERVAL);
+    },
+
+    stopAuto() {
+      if (this.autoId) {
+        clearInterval(this.autoId);
+        this.autoId = null;
+      }
+    },
+
+    async fetch(auto = false) {
       if (this.isLoading) return;
 
       this.isLoading = true;
-      this.hitokotoElement.style.opacity = '0';
-      this.hitokotoElement.textContent = '加载中...';
-      this.fromElement.textContent = '';
+      // 自动轮换时不显示"加载中"，等新句到手后直接淡出淡入
+      if (!auto) {
+        this.hitokotoElement.style.opacity = '0';
+        this.hitokotoElement.textContent = '加载中...';
+        this.fromElement.textContent = '';
+      }
 
       // 取消之前的请求
       if (this.controller) {
@@ -461,6 +571,9 @@
         }
 
         const data = await response.json();
+
+        // 先淡出旧句，300ms 后换新句淡入（与 CSS 过渡时长一致）
+        this.hitokotoElement.style.opacity = '0';
 
         setTimeout(() => {
           this.hitokotoElement.textContent = data.hitokoto || '生活不止眼前的苟且,还有诗和远方。';
@@ -488,6 +601,8 @@
     refresh() {
       if (!this.isLoading) {
         this.fetch();
+        // 手动换句后重新计时，避免刚换完又被自动轮换顶掉
+        this.startAuto();
       }
     },
 
@@ -503,6 +618,7 @@
     },
 
     destroy() {
+      this.stopAuto();
       if (this.controller) {
         this.controller.abort();
       }
@@ -891,6 +1007,8 @@
     deferHeavyEffects() {
       const run = () => {
         Utils.tryCatch(() => StarSystem.init(), '星空初始化失败');
+        Utils.tryCatch(() => MeteorSystem.init(), '流星初始化失败');
+        Utils.tryCatch(() => DustSystem.init(), '微尘初始化失败');
       };
 
       if ('requestIdleCallback' in window) {
@@ -1057,6 +1175,8 @@
     destroy() {
       MotionSystem.destroy();
       StarSystem.destroy();
+      MeteorSystem.destroy();
+      DustSystem.destroy();
       CursorSystem.destroy();
       ClockSystem.destroy();
       HitokotoSystem.destroy();
@@ -1076,8 +1196,8 @@
   }
 
   // ==================== 页面卸载清理 ====================
-  window.addEventListener('beforeunload', () => {
-    App.destroy();
-  });
+  // 注意：不能挂在 beforeunload 上做清理——点击 mailto 链接会触发 beforeunload
+  // 但页面并不会真正卸载，之前在这里 destroy 导致返回后光标运动循环被杀死、
+  // 光标卡住。真正卸载时浏览器会自行回收资源，无需手动清理。
 
 })();

@@ -150,7 +150,18 @@ body {
   background: url("./images/bg.png") center/cover no-repeat, #0b0c0f;
   backface-visibility: hidden;
   transform: translateZ(0);
+  /* 极慢的呼吸缩放：让影像"活着"，幅度小到不易察觉 */
+  animation: bg-breathe 42s ease-in-out infinite alternate;
   contain: strict;
+}
+
+@keyframes bg-breathe {
+  from {
+    transform: translateZ(0) scale(1);
+  }
+  to {
+    transform: translateZ(0) scale(1.06);
+  }
 }
 
 /* 轻薄墨色调和层：统一影像与界面的色温，不遮盖画面 */
@@ -237,6 +248,76 @@ body {
   }
   50% {
     opacity: 0.55;
+  }
+}
+
+/* ==================== 流星（偶发、斜向左下划过） ==================== */
+.meteor {
+  position: fixed;
+  width: 110px;
+  height: 1px;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 999px;
+  /* 头亮尾隐：行进方向在渐变亮端 */
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85));
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.25);
+  opacity: 0;
+  animation: meteor-fall 1.6s linear forwards;
+}
+
+@keyframes meteor-fall {
+  0% {
+    transform: rotate(150deg) translateX(0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.9;
+  }
+  70% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: rotate(150deg) translateX(44vmax);
+    opacity: 0;
+  }
+}
+
+/* ==================== 地平线微尘（金色光点缓缓上浮） ==================== */
+.dust-field {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  contain: strict;
+}
+
+.dust {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(224, 196, 148, 0.8);
+  box-shadow: 0 0 6px rgba(201, 168, 124, 0.5);
+  opacity: 0;
+  animation: dust-rise linear infinite;
+}
+
+@keyframes dust-rise {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.6;
+  }
+  80% {
+    opacity: 0.18;
+  }
+  100% {
+    transform: translate3d(var(--dx, 0px), -26vh, 0);
+    opacity: 0;
   }
 }
 
@@ -358,7 +439,7 @@ body {
   z-index: 2;
 }
 
-/* 外圈：一条离开头像 7px 的香槟色细环 */
+/* 外圈：一条离开头像 7px 的香槟色细环，带呼吸灯光晕 */
 .logo-wrapper::before {
   content: "";
   position: absolute;
@@ -372,6 +453,20 @@ body {
   border-radius: 50%;
   transition: border-color 0.6s ease, transform 0.6s var(--ease-out);
   z-index: 1;
+  /* 呼吸灯：只动光晕，不干扰悬停的变色与缩放 */
+  animation: logo-breathe 4s ease-in-out infinite;
+}
+
+@keyframes logo-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(201, 168, 124, 0.1),
+      inset 0 0 8px rgba(201, 168, 124, 0.06);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(201, 168, 124, 0.4),
+      inset 0 0 14px rgba(201, 168, 124, 0.16);
+  }
 }
 
 .logo-wrapper:hover .logo {
@@ -396,7 +491,7 @@ body {
   color: var(--ink);
 }
 
-/* 字标下的一段渐隐金线 */
+/* 字标下的一段渐隐金线：流光缓慢往复 */
 .site-name::after {
   content: "";
   display: block;
@@ -409,6 +504,17 @@ body {
     var(--accent-soft),
     transparent
   );
+  background-size: 200% 100%;
+  animation: line-shimmer 6s ease-in-out infinite alternate;
+}
+
+@keyframes line-shimmer {
+  from {
+    background-position: 0% 0;
+  }
+  to {
+    background-position: 100% 0;
+  }
 }
 
 /* ==================== 一言（去卡片，纯引文排印） ==================== */
@@ -535,21 +641,24 @@ body {
   transition: fill 0.35s ease;
 }
 
-/* 悬浮标签：小型深色字牌，不再用渐变气泡 */
+/* 悬浮标签：磨砂玻璃药丸牌，香槟金描边与文字，与全站同调 */
 .social-btn::after {
   content: attr(data-tooltip);
   position: absolute;
-  bottom: -42px;
+  bottom: -44px;
   left: 50%;
   transform: translateX(-50%) translateY(-4px);
-  background: rgba(13, 14, 18, 0.92);
-  padding: 7px 14px;
-  border-radius: 4px;
-  border: 1px solid var(--hairline);
+  background: rgba(24, 26, 33, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 7px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 168, 124, 0.28);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   font-size: 11px;
   letter-spacing: 0.14em;
   white-space: nowrap;
-  color: var(--ink-70);
+  color: #d9c5a5;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease, transform 0.3s var(--ease-out);
@@ -693,12 +802,12 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) translateY(6px);
-  background: rgba(16, 17, 21, 0.94);
+  background: rgba(24, 26, 33, 0.6);
   backdrop-filter: blur(var(--blur-amount));
   -webkit-backdrop-filter: blur(var(--blur-amount));
   padding: 18px 36px;
-  border-radius: 6px;
-  border: 1px solid var(--hairline-strong);
+  border-radius: 999px;
+  border: 1px solid rgba(201, 168, 124, 0.28);
   color: var(--ink);
   font-size: 14px;
   letter-spacing: 0.06em;
