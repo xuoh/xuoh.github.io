@@ -1,6 +1,6 @@
 /**
  * Xuoh 个人主页 - 主脚本
- * 版本: 3.1 (流畅优化)
+ * 版本: 3.5 (全静止背景)
  * 使用 IIFE 模式封装，避免全局变量污染
  */
 
@@ -13,7 +13,6 @@
     PARTICLE_COUNT_MOBILE: 10,
     STAR_COUNT_DESKTOP: 80,
     STAR_COUNT_MOBILE: 40,
-    CURSOR_SPEED: 0.4,
     MOBILE_BREAKPOINT: 768,
     HITOKOTO_TIMEOUT: 8000,
     CLOCK_UPDATE_INTERVAL: 1000,
@@ -89,13 +88,12 @@
     },
   };
 
-  // ==================== 统一运动循环（光标 + 视差共用 rAF） ====================
+  // ==================== 统一运动循环（驱动光环拖尾；内点不走循环） ====================
   const MotionSystem = {
-    mouseX: 0,
-    mouseY: 0,
     rafId: null,
     isActive: false,
     hasPosition: false,
+    lastTime: 0,
 
     init() {
       if (Utils.isMobile() || Utils.isTouchDevice()) {
@@ -105,9 +103,9 @@
       this.isActive = true;
 
       document.addEventListener('mousemove', (e) => {
-        this.mouseX = e.clientX;
-        this.mouseY = e.clientY;
         this.hasPosition = true;
+        // 光标在事件回调里 1:1 直接定位：不插值、不等下一帧，消除跟手延迟
+        CursorSystem.moveTo(e.clientX, e.clientY);
       }, { passive: true });
 
       document.addEventListener('visibilitychange', () => {
@@ -118,18 +116,20 @@
         }
       });
 
-      this.loop();
+      this.loop(performance.now());
     },
 
-    loop() {
+    loop(now) {
       if (!this.isActive) return;
 
       if (this.hasPosition) {
-        CursorSystem.tick(this.mouseX, this.mouseY);
-        ParallaxSystem.tick(this.mouseX, this.mouseY);
+        // 帧时长上限 100ms，防止卡顿/切回页面后拖尾跳变
+        const dt = this.lastTime ? Math.min(now - this.lastTime, 100) : 16.7;
+        CursorSystem.tick(dt);
       }
+      this.lastTime = now;
 
-      this.rafId = requestAnimationFrame(() => this.loop());
+      this.rafId = requestAnimationFrame((t) => this.loop(t));
     },
 
     pause() {
@@ -141,7 +141,8 @@
 
     resume() {
       if (this.isActive && !this.rafId) {
-        this.loop();
+        this.lastTime = 0;
+        this.loop(performance.now());
       }
     },
 
@@ -151,21 +152,32 @@
     },
   };
 
-  // ==================== 光标系统 ====================
+  // ==================== 光标系统（内点 1:1 跟手 + 光环拖尾） ====================
   const CursorSystem = {
-    cursor: null,
-    cursorX: 0,
-    cursorY: 0,
-    isReady: false,
+    dot: null,
+    outline: null,
     isActive: false,
+    hasPosition: false,
+    settled: false,
+    reducedMotion: false,
+    targetX: 0,
+    targetY: 0,
+    outlineX: 0,
+    outlineY: 0,
+    TRAIL: 0.15,
+    INTERACTIVE: 'button, a, .logo, .refresh-btn, .logo-wrapper',
 
     init() {
       if (Utils.isMobile() || Utils.isTouchDevice()) {
         return;
       }
 
-      this.cursor = Utils.getElement('.cursor');
-      if (!this.cursor) return;
+      this.dot = Utils.getElement('.cursor-dot');
+      this.outline = Utils.getElement('.cursor-outline');
+      if (!this.dot || !this.outline) return;
+
+      this.reducedMotion =
+        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
       this.isActive = true;
       this.bindEvents();
@@ -173,44 +185,94 @@
 
     bindEvents() {
       document.addEventListener('mousedown', () => {
-        this.cursor?.classList.add('click');
+        this.setState('press', true);
       }, { passive: true });
 
       document.addEventListener('mouseup', () => {
-        this.cursor?.classList.remove('click');
+        this.setState('press', false);
       }, { passive: true });
 
       document.addEventListener('mouseover', (e) => {
-        if (e.target.closest('button, a, .logo, .refresh-btn, .logo-wrapper')) {
-          this.cursor?.classList.add('hover');
+        if (e.target.closest(this.INTERACTIVE)) {
+          this.setState('hover', true);
         }
       }, { passive: true });
 
       document.addEventListener('mouseout', (e) => {
-        if (e.target.closest('button, a, .logo, .refresh-btn, .logo-wrapper')) {
-          this.cursor?.classList.remove('hover');
+        const el = e.target.closest(this.INTERACTIVE);
+        // 仍在同一交互元素内部移动时不取消 hover，避免尺寸反复抖动
+        if (el && !(e.relatedTarget && el.contains(e.relatedTarget))) {
+          this.setState('hover', false);
         }
       }, { passive: true });
+
+      // 鼠标离开窗口时淡出；重置 hasPosition，回来第一帧光环直接吸附，不横穿屏幕
+      document.addEventListener('mouseleave', () => {
+        this.setVisible(false);
+        this.hasPosition = false;
+      });
     },
 
-    tick(mouseX, mouseY) {
-      if (!this.isActive || !this.cursor) return;
+    setState(name, on) {
+      if (!this.isActive) return;
+      this.dot.classList.toggle(name, on);
+      this.outline.classList.toggle(name, on);
+    },
 
-      if (!this.isReady) {
-        this.cursorX = mouseX;
-        this.cursorY = mouseY;
-        this.isReady = true;
-      } else {
-        this.cursorX += (mouseX - this.cursorX) * CONFIG.CURSOR_SPEED;
-        this.cursorY += (mouseY - this.cursorY) * CONFIG.CURSOR_SPEED;
+    setVisible(on) {
+      if (!this.isActive) return;
+      this.dot.classList.toggle('is-visible', on);
+      this.outline.classList.toggle('is-visible', on);
+    },
+
+    moveTo(x, y) {
+      if (!this.isActive) return;
+
+      this.targetX = x;
+      this.targetY = y;
+
+      if (!this.hasPosition) {
+        // 首次出现/回到窗口：光环直接吸附到位再淡入
+        this.hasPosition = true;
+        this.outlineX = x;
+        this.outlineY = y;
+        this.applyOutline();
+        this.setVisible(true);
+      }
+      this.settled = false;
+
+      // 内点在事件回调里 1:1 直接定位：不插值、不等下一帧，保持零延迟
+      this.dot.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    },
+
+    // 光环拖尾：由 MotionSystem 的 rAF 驱动，滞后是刻意的装饰效果
+    tick(dt) {
+      if (!this.isActive || !this.hasPosition || this.settled) return;
+
+      const dx = this.targetX - this.outlineX;
+      const dy = this.targetY - this.outlineY;
+
+      // 追上后吸附并停止写入，避免空转
+      if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) {
+        this.outlineX = this.targetX;
+        this.outlineY = this.targetY;
+        this.applyOutline();
+        this.settled = true;
+        return;
       }
 
-      this.cursor.style.transform =
-        `translate3d(${this.cursorX}px, ${this.cursorY}px, 0) translate(-50%, -50%)`;
+      // 按帧时长归一，60Hz 与 144Hz 拖尾手感一致；减少动画偏好下直接跟随
+      const alpha = this.reducedMotion
+        ? 1
+        : 1 - Math.pow(1 - this.TRAIL, dt / 16.7);
+      this.outlineX += dx * alpha;
+      this.outlineY += dy * alpha;
+      this.applyOutline();
     },
 
-    resume() {
-      // 由 MotionSystem 统一 resume
+    applyOutline() {
+      this.outline.style.transform =
+        `translate3d(${this.outlineX}px, ${this.outlineY}px, 0)`;
     },
 
     destroy() {
@@ -619,115 +681,11 @@
     },
   };
 
-  // ==================== Logo 交互系统 ====================
-  const LogoSystem = {
-    logoWrapper: null,
-    pendingX: 0,
-    pendingY: 0,
-    rafId: null,
-    hovering: false,
-
-    init() {
-      this.logoWrapper = Utils.getElement('.logo-wrapper');
-      if (!this.logoWrapper || Utils.isMobile()) return;
-
-      this.bindEvents();
-    },
-
-    bindEvents() {
-      this.logoWrapper.addEventListener('mousemove', (e) => {
-        this.pendingX = e.clientX;
-        this.pendingY = e.clientY;
-        this.hovering = true;
-
-        if (!this.rafId) {
-          this.rafId = requestAnimationFrame(() => this.applyTilt());
-        }
-      }, { passive: true });
-
-      this.logoWrapper.addEventListener('mouseleave', () => {
-        this.hovering = false;
-        if (this.rafId) {
-          cancelAnimationFrame(this.rafId);
-          this.rafId = null;
-        }
-        this.logoWrapper.style.transform = 'perspective(1000px) rotateX(0) rotateY(0)';
-      });
-    },
-
-    applyTilt() {
-      this.rafId = null;
-      if (!this.hovering || !this.logoWrapper) return;
-
-      const rect = this.logoWrapper.getBoundingClientRect();
-      const x = this.pendingX - rect.left - rect.width / 2;
-      const y = this.pendingY - rect.top - rect.height / 2;
-      const rotateX = (y / rect.height) * 20;
-      const rotateY = (x / rect.width) * 20;
-
-      this.logoWrapper.style.transform =
-        `perspective(1000px) rotateX(${-rotateX}deg) rotateY(${rotateY}deg)`;
-    },
-  };
-
   // ==================== 滚动系统 ====================
   const ScrollSystem = {
     init() {
       // 禁用页面滚动，不需要滚动监听
       // 页面现在是固定的单屏展示
-    },
-  };
-
-  // ==================== 3D视差系统（由 MotionSystem rAF 驱动） ====================
-  const ParallaxSystem = {
-    container: null,
-    stars: null,
-    isActive: false,
-    targetOffsetX: 0,
-    targetOffsetY: 0,
-    currentOffsetX: 0,
-    currentOffsetY: 0,
-    LERP: 0.08,
-
-    init() {
-      if (this.isActive) return;
-      if (Utils.isMobile() || Utils.isTouchDevice()) return;
-
-      this.container = Utils.getElement('.container');
-      this.stars = Utils.getElement('.stars');
-      if (!this.container) return;
-
-      this.isActive = true;
-
-      // 鼠标离开时平滑归零
-      document.addEventListener('mouseleave', () => {
-        this.targetOffsetX = 0;
-        this.targetOffsetY = 0;
-      });
-    },
-
-    tick(mouseX, mouseY) {
-      if (!this.isActive) return;
-
-      const width = window.innerWidth || 1;
-      const height = window.innerHeight || 1;
-      this.targetOffsetX = (mouseX / width - 0.5) * 2;
-      this.targetOffsetY = (mouseY / height - 0.5) * 2;
-
-      this.currentOffsetX += (this.targetOffsetX - this.currentOffsetX) * this.LERP;
-      this.currentOffsetY += (this.targetOffsetY - this.currentOffsetY) * this.LERP;
-
-      if (this.stars) {
-        this.stars.style.transform =
-          `translate3d(${this.currentOffsetX * 15}px, ${this.currentOffsetY * 15}px, 0)`;
-      }
-
-      if (this.container) {
-        const rotateX = this.currentOffsetY * -3;
-        const rotateY = this.currentOffsetX * 3;
-        this.container.style.transform =
-          `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-      }
     },
   };
 
@@ -935,9 +893,9 @@
   const ResponsiveSystem = {
     init() {
       this.adjustFontSize();
+      // 移动端隐藏光标由 CSS 媒体查询负责，这里只处理字号
       window.addEventListener('resize', Utils.debounce(() => {
         this.adjustFontSize();
-        this.handleResize();
       }, CONFIG.DEBOUNCE_DELAY));
     },
 
@@ -951,13 +909,6 @@
         root.style.fontSize = '15px';
       } else {
         root.style.fontSize = '16px';
-      }
-    },
-
-    handleResize() {
-      const cursor = Utils.getElement('.cursor');
-      if (cursor) {
-        cursor.style.display = Utils.isMobile() ? 'none' : 'block';
       }
     },
   };
@@ -1007,7 +958,6 @@
       const run = () => {
         Utils.tryCatch(() => StarSystem.init(), '星空初始化失败');
         Utils.tryCatch(() => ParticleSystem.init(), '粒子初始化失败');
-        Utils.tryCatch(() => ParallaxSystem.init(), '视差初始化失败');
       };
 
       if ('requestIdleCallback' in window) {
@@ -1104,7 +1054,7 @@
   const InitChecker = {
     check() {
       const checks = {
-        '光标元素': !!Utils.getElement('.cursor'),
+        '光标元素': !!Utils.getElement('.cursor-dot'),
         '时钟元素': !!Utils.getElement('#time'),
         '一言元素': !!Utils.getElement('#hitokoto'),
         '导航元素': !!Utils.getElement('.navbar'),
@@ -1141,7 +1091,7 @@
         '%c制作: Xuoh | 技术栈: HTML5 + CSS3 + Vanilla JS',
         'color: #a78bfa; font-size: 12px;'
       );
-      console.log('%c版本: 3.1 (流畅优化)', 'color: #4ade80; font-size: 12px;');
+      console.log('%c版本: 3.5 (全静止背景)', 'color: #4ade80; font-size: 12px;');
     },
   };
 
@@ -1154,13 +1104,12 @@
       // 内容保护系统（优先初始化）
       ContentProtection.init();
 
-      // 首屏关键系统先启动；星空/粒子/视差由 Loader 结束后延迟挂载
+      // 首屏关键系统先启动；星空/粒子由 Loader 结束后延迟挂载
       CursorSystem.init();
       MotionSystem.init();
       ClockSystem.init();
       HitokotoSystem.init();
       NavigationSystem.init();
-      LogoSystem.init();
       ScrollSystem.init();
       TouchSystem.init();
       KeyboardSystem.init();

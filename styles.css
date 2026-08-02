@@ -6,12 +6,10 @@
   --glass-border: rgba(255, 255, 255, 0.2);
   --transition-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --blur-amount: 10px;
+  --blur-amount: 8px;
   --shadow-light: 0 8px 32px rgba(0, 0, 0, 0.1);
   --shadow-medium: 0 12px 40px rgba(0, 0, 0, 0.15);
   --shadow-heavy: 0 20px 60px rgba(0, 0, 0, 0.3);
-  --cursor-size: 20px;
-  --cursor-hover-size: 40px;
   --mobile-breakpoint: 768px;
 }
 
@@ -47,86 +45,85 @@ body {
   left: 0;
 }
 
-/* ==================== 自定义光标 ==================== */
-.cursor {
+/* ==================== 自定义光标（内点 1:1 跟手 + 光环拖尾） ==================== */
+.cursor-dot,
+.cursor-outline {
   position: fixed;
   top: 0;
   left: 0;
-  width: var(--cursor-size);
-  height: var(--cursor-size);
-  border-radius: 50%;
   pointer-events: none;
-  z-index: 9999;
-  will-change: transform;
-  /* 位置由 JS transform 驱动，禁止 transition，避免拖尾延迟 */
-  transition: width 0.18s var(--transition-smooth),
-    height 0.18s var(--transition-smooth),
-    background 0.18s ease;
-  background: var(--primary-gradient);
-  padding: 2px;
-  transform: translate3d(-100px, -100px, 0) translate(-50%, -50%);
-  contain: layout style;
-}
-
-.cursor::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: calc(100% - 4px);
-  height: calc(100% - 4px);
-  background: #0a0a0a;
-  border-radius: 50%;
-}
-
-.cursor::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(
-    circle,
-    rgba(102, 126, 234, 0.4) 0%,
-    transparent 70%
-  );
-  border-radius: 50%;
-  filter: blur(8px);
   opacity: 0;
+  will-change: transform;
+  /* 位移由 JS transform 逐帧驱动，外层只过渡透明度，勿加 transform 过渡 */
   transition: opacity 0.3s ease;
+  transform: translate3d(-100px, -100px, 0);
 }
 
-.cursor.hover::after {
+.cursor-dot {
+  z-index: 10006;
+}
+
+.cursor-outline {
+  z-index: 10005;
+}
+
+.cursor-dot.is-visible,
+.cursor-outline.is-visible {
   opacity: 1;
-  animation: pulse-glow 1.5s ease-in-out infinite;
 }
 
-@keyframes pulse-glow {
-  0%,
-  100% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 0.6;
-  }
-  50% {
-    transform: translate(-50%, -50%) scale(1.5);
-    opacity: 0.3;
-  }
+/* 视觉本体在 ::before 上：缩放、变色走 CSS 过渡，与外层位移互不干扰 */
+.cursor-dot::before,
+.cursor-outline::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  transition: transform 0.25s var(--transition-smooth),
+    background 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
-.cursor.click {
-  width: 15px;
-  height: 15px;
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+.cursor-dot::before {
+  width: 8px;
+  height: 8px;
+  background: linear-gradient(135deg, #64c8ff, #667eea);
+  box-shadow: 0 0 10px rgba(100, 200, 255, 0.55);
 }
 
-.cursor.hover {
-  width: var(--cursor-hover-size);
-  height: var(--cursor-hover-size);
-  background: var(--primary-gradient);
-  /* 去掉持续 hue-rotate，减少合成层开销 */
+.cursor-outline::before {
+  width: 38px;
+  height: 38px;
+  border: 1.5px solid rgba(102, 126, 234, 0.65);
+  background: rgba(102, 126, 234, 0.08);
+  box-shadow: 0 0 18px rgba(102, 126, 234, 0.18),
+    inset 0 0 12px rgba(102, 126, 234, 0.1);
+}
+
+/* 悬停可交互元素：光环放大点亮，内点收敛 */
+.cursor-dot.hover::before {
+  transform: translate(-50%, -50%) scale(0.5);
+}
+
+.cursor-outline.hover::before {
+  transform: translate(-50%, -50%) scale(1.45);
+  border-color: rgba(240, 147, 251, 0.85);
+  background: rgba(240, 147, 251, 0.1);
+  box-shadow: 0 0 24px rgba(240, 147, 251, 0.3);
+}
+
+/* 按下：整体轻收，模拟按压回馈（放在 hover 之后，按下时优先生效） */
+.cursor-dot.press::before {
+  transform: translate(-50%, -50%) scale(0.75);
+  transition-duration: 0.12s;
+}
+
+.cursor-outline.press::before {
+  transform: translate(-50%, -50%) scale(0.85);
+  transition-duration: 0.12s;
 }
 
 /* ==================== 背景容器 ==================== */
@@ -180,7 +177,6 @@ body {
   z-index: -2;
   pointer-events: none;
   overflow: hidden;
-  will-change: transform;
   contain: layout style;
 }
 
@@ -353,9 +349,7 @@ body {
   align-items: center;
   padding: 20px;
   animation: fadeIn 0.7s ease-out 0.2s both;
-  /* transform 由视差 rAF 驱动，勿加 transition，否则拖泥带水 */
-  transform-style: preserve-3d;
-  will-change: transform;
+  /* 前景保持静止：容器一动，内部所有毛玻璃每帧重新取样模糊，会拖垮帧率 */
   overflow: hidden; /* 防止内容溢出 */
 }
 
@@ -370,7 +364,6 @@ body {
 .logo-wrapper {
   position: relative;
   display: inline-block;
-  will-change: transform;
 }
 
 .logo {
@@ -842,7 +835,8 @@ body {
     padding: 20px 25px;
   }
 
-  .cursor {
+  .cursor-dot,
+  .cursor-outline {
     display: none !important;
   }
 
