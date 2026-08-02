@@ -151,19 +151,21 @@
     },
   };
 
-  // ==================== 光标系统（内点 1:1 跟手 + 光环拖尾） ====================
+  // ==================== 光标系统（内点 1:1 跟手 + canvas 轨迹流星拖尾） ====================
   const CursorSystem = {
     dot: null,
-    outline: null,
+    canvas: null,
+    ctx: null,
+    dpr: 1,
+    points: [], // 最近的轨迹点 {x, y, t}
     isActive: false,
     hasPosition: false,
     settled: false,
     reducedMotion: false,
     targetX: 0,
     targetY: 0,
-    outlineX: 0,
-    outlineY: 0,
-    TRAIL: 0.15,
+    TRAIL_LIFE: 300, // 轨迹点寿命 ms：决定尾巴长度与消散速度
+    MAX_POINTS: 90,
     INTERACTIVE: 'button, a, .logo, .refresh-btn, .logo-wrapper',
 
     init() {
@@ -172,14 +174,28 @@
       }
 
       this.dot = Utils.getElement('.cursor-dot');
-      this.outline = Utils.getElement('.cursor-outline');
-      if (!this.dot || !this.outline) return;
+      this.canvas = Utils.getElement('.cursor-trail');
+      if (!this.dot || !this.canvas) return;
 
+      this.ctx = this.canvas.getContext('2d');
       this.reducedMotion =
         window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
+      this.resize();
+      window.addEventListener(
+        'resize',
+        Utils.debounce(() => this.resize(), 200)
+      );
+
       this.isActive = true;
       this.bindEvents();
+    },
+
+    resize() {
+      // 高分屏 2x 封顶：再高肉眼无差，白费填充率
+      this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+      this.canvas.width = Math.round(window.innerWidth * this.dpr);
+      this.canvas.height = Math.round(window.innerHeight * this.dpr);
     },
 
     bindEvents() {
@@ -205,7 +221,7 @@
         }
       }, { passive: true });
 
-      // 鼠标离开窗口时淡出；重置 hasPosition，回来第一帧光环直接吸附，不横穿屏幕
+      // 鼠标离开窗口时淡出；重置 hasPosition，回来第一帧就地吸附
       document.addEventListener('mouseleave', () => {
         this.setVisible(false);
         this.hasPosition = false;
@@ -224,13 +240,21 @@
     setState(name, on) {
       if (!this.isActive) return;
       this.dot.classList.toggle(name, on);
-      this.outline.classList.toggle(name, on);
     },
 
     setVisible(on) {
       if (!this.isActive) return;
       this.dot.classList.toggle('is-visible', on);
-      this.outline.classList.toggle('is-visible', on);
+      if (!on) {
+        this.clearTrail();
+      }
+    },
+
+    clearTrail() {
+      this.points.length = 0;
+      if (this.ctx) {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      }
     },
 
     moveTo(x, y) {
@@ -240,51 +264,79 @@
       this.targetY = y;
 
       if (!this.hasPosition) {
-        // 首次出现/回到窗口：光环直接吸附到位再淡入
+        // 首次出现/回到窗口：就地吸附，拖尾从零长起
         this.hasPosition = true;
-        this.outlineX = x;
-        this.outlineY = y;
-        this.applyOutline();
+        this.points.length = 0;
         this.setVisible(true);
       }
       this.settled = false;
+
+      // 记录真实轨迹点；mousemove 频率高于 rAF，能捕捉到弯道细节
+      if (!this.reducedMotion) {
+        const last = this.points[this.points.length - 1];
+        if (!last || last.x !== x || last.y !== y) {
+          this.points.push({ x, y, t: performance.now() });
+          if (this.points.length > this.MAX_POINTS) {
+            this.points.shift();
+          }
+        }
+      }
 
       // 内点在事件回调里 1:1 直接定位：不插值、不等下一帧，保持零延迟
       this.dot.style.transform = `translate3d(${x}px, ${y}px, 0)`;
     },
 
-    // 光环拖尾：由 MotionSystem 的 rAF 驱动，滞后是刻意的装饰效果
-    tick(dt) {
+    // 拖尾绘制：由 MotionSystem 的 rAF 驱动。
+    // 沿真实轨迹连线，头粗尾细、随时间渐隐；静止后轨迹点自然过期、尾巴收进光标
+    tick() {
       if (!this.isActive || !this.hasPosition || this.settled) return;
 
-      const dx = this.targetX - this.outlineX;
-      const dy = this.targetY - this.outlineY;
-
-      // 追上后吸附并停止写入，避免空转
-      if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) {
-        this.outlineX = this.targetX;
-        this.outlineY = this.targetY;
-        this.applyOutline();
+      if (this.reducedMotion) {
         this.settled = true;
         return;
       }
 
-      // 按帧时长归一，60Hz 与 144Hz 拖尾手感一致；减少动画偏好下直接跟随
-      const alpha = this.reducedMotion
-        ? 1
-        : 1 - Math.pow(1 - this.TRAIL, dt / 16.7);
-      this.outlineX += dx * alpha;
-      this.outlineY += dy * alpha;
-      this.applyOutline();
-    },
+      const now = performance.now();
 
-    applyOutline() {
-      this.outline.style.transform =
-        `translate3d(${this.outlineX}px, ${this.outlineY}px, 0)`;
+      // 过期点出队（尾端先消失）
+      while (this.points.length && now - this.points[0].t > this.TRAIL_LIFE) {
+        this.points.shift();
+      }
+
+      const ctx = this.ctx;
+      const dpr = this.dpr;
+      ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+      const n = this.points.length;
+      if (n < 2) {
+        // 轨迹已全部消散：停笔，等下一次移动再唤醒
+        this.settled = true;
+        return;
+      }
+
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      for (let i = 0; i < n - 1; i++) {
+        const p1 = this.points[i];
+        const p2 = this.points[i + 1];
+        const pos = (i + 1) / (n - 1); // 0 = 尾端，1 = 头部（光标处）
+        const ageFade = 1 - (now - p2.t) / this.TRAIL_LIFE;
+        const alpha = Math.max(0, pos * pos * ageFade) * 0.85;
+        if (alpha < 0.01) continue;
+
+        ctx.strokeStyle = `rgba(226, 238, 255, ${alpha.toFixed(3)})`;
+        ctx.lineWidth = (0.6 + 2 * pos) * dpr;
+        ctx.beginPath();
+        ctx.moveTo(p1.x * dpr, p1.y * dpr);
+        ctx.lineTo(p2.x * dpr, p2.y * dpr);
+        ctx.stroke();
+      }
     },
 
     destroy() {
       this.isActive = false;
+      this.clearTrail();
     },
   };
 
@@ -621,6 +673,64 @@
       this.stopAuto();
       if (this.controller) {
         this.controller.abort();
+      }
+    },
+  };
+
+  // ==================== 底部信息系统（运行时长 + 旅行者 1 号距离） ====================
+  const FooterSystem = {
+    uptimeEl: null,
+    voyagerEl: null,
+    intervalId: null,
+
+    // 建站时间 = 仓库首次提交时间
+    LAUNCH_MS: new Date('2026-07-29T01:14:58+08:00').getTime(),
+    // 旅行者 1 号线性模型：参考时刻的距离 + 平均退行速度 × 经过时间
+    V_EPOCH_MS: Date.UTC(2024, 9, 1), // 2024-10-01
+    V_KM_AT_EPOCH: 24464814953,
+    V_KM_PER_SEC: 16.9995,
+    AU_KM: 149597870.7,
+
+    init() {
+      this.uptimeEl = Utils.getElement('#uptime');
+      this.voyagerEl = Utils.getElement('#voyager');
+      const yearEl = Utils.getElement('#footer-year');
+      if (yearEl) yearEl.textContent = String(new Date().getFullYear());
+      if (!this.uptimeEl || !this.voyagerEl) return;
+
+      this.update();
+      this.intervalId = setInterval(() => {
+        if (!document.hidden) this.update();
+      }, 1000);
+    },
+
+    update() {
+      Utils.tryCatch(() => {
+        const now = Date.now();
+
+        let s = Math.max(0, Math.floor((now - this.LAUNCH_MS) / 1000));
+        const d = Math.floor(s / 86400);
+        s -= d * 86400;
+        const h = Math.floor(s / 3600);
+        s -= h * 3600;
+        const m = Math.floor(s / 60);
+        s -= m * 60;
+        this.uptimeEl.textContent =
+          `本站居然运行了 ${d} 天 ${h} 小时 ${m} 分 ${s} 秒 ❤️`;
+
+        const km =
+          this.V_KM_AT_EPOCH +
+          ((now - this.V_EPOCH_MS) / 1000) * this.V_KM_PER_SEC;
+        this.voyagerEl.textContent =
+          `旅行者 1 号当前距离地球 ${Math.round(km)} 千米，` +
+          `约为 ${(km / this.AU_KM).toFixed(6)} 个天文单位 🚀`;
+      }, '底部信息更新失败');
+    },
+
+    destroy() {
+      if (this.intervalId) {
+        clearInterval(this.intervalId);
+        this.intervalId = null;
       }
     },
   };
@@ -1154,6 +1264,7 @@
       MotionSystem.init();
       ClockSystem.init();
       HitokotoSystem.init();
+      FooterSystem.init();
       NavigationSystem.init();
       ScrollSystem.init();
       TouchSystem.init();

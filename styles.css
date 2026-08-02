@@ -64,36 +64,36 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* ==================== 自定义光标（内点 1:1 跟手 + 光环拖尾） ==================== */
-.cursor-dot,
-.cursor-outline {
+/* ==================== 自定义光标（内点 1:1 跟手 + 流星拖尾） ==================== */
+.cursor-dot {
   position: fixed;
   top: 0;
   left: 0;
   pointer-events: none;
   opacity: 0;
   will-change: transform;
-  /* 位移由 JS transform 逐帧驱动，外层只过渡透明度，勿加 transform 过渡 */
-  transition: opacity 0.3s ease;
   transform: translate3d(-100px, -100px, 0);
-}
-
-.cursor-dot {
   z-index: 10006;
+  transition: opacity 0.3s ease;
 }
 
-.cursor-outline {
-  z-index: 10005;
-}
-
-.cursor-dot.is-visible,
-.cursor-outline.is-visible {
+.cursor-dot.is-visible {
   opacity: 1;
 }
 
+/* 流星拖尾：canvas 逐帧绘制光标真实轨迹，
+   头粗尾细、随时间渐隐，拐弯时尾巴沿弯道自然弯曲 */
+.cursor-trail {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10005;
+  pointer-events: none;
+}
+
 /* 视觉本体在 ::before 上：缩放、变色走 CSS 过渡，与外层位移互不干扰 */
-.cursor-dot::before,
-.cursor-outline::before {
+.cursor-dot::before {
   content: "";
   position: absolute;
   top: 50%;
@@ -101,41 +101,21 @@ body {
   border-radius: 50%;
   transform: translate(-50%, -50%) scale(1);
   transition: transform 0.3s var(--ease-out),
-    background 0.3s ease,
-    border-color 0.3s ease;
-}
-
-.cursor-dot::before {
+    background 0.3s ease;
   width: 6px;
   height: 6px;
   background: var(--ink);
 }
 
-.cursor-outline::before {
-  width: 34px;
-  height: 34px;
-  border: 1px solid rgba(234, 231, 224, 0.35);
-}
-
-/* 悬停可交互元素：光环放大并染金，内点收敛 */
+/* 悬停可交互元素：内点收敛并染金 */
 .cursor-dot.hover::before {
   transform: translate(-50%, -50%) scale(0.5);
   background: var(--accent);
 }
 
-.cursor-outline.hover::before {
-  transform: translate(-50%, -50%) scale(1.4);
-  border-color: var(--accent-soft);
-}
-
-/* 按下：整体轻收，模拟按压回馈（放在 hover 之后，按下时优先生效） */
+/* 按下：轻收，模拟按压回馈（放在 hover 之后，按下时优先生效） */
 .cursor-dot.press::before {
   transform: translate(-50%, -50%) scale(0.7);
-  transition-duration: 0.12s;
-}
-
-.cursor-outline.press::before {
-  transform: translate(-50%, -50%) scale(0.9);
   transition-duration: 0.12s;
 }
 
@@ -188,6 +168,118 @@ body {
     transparent 60%,
     rgba(3, 4, 6, 0.42) 100%
   );
+}
+
+/* ==================== 星球（巨大球体从地平线光中升起） ==================== */
+.halo-ring {
+  position: fixed;
+  left: 50%;
+  top: 51%;
+  width: min(84vh, 94vw);
+  height: min(84vh, 94vw);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px solid rgba(210, 220, 245, 0.22);
+  z-index: -1;
+  pointer-events: none;
+  /* 球体本体：中心留浅（在内容后面），边缘近乎不透明——挡住身后的星星 */
+  background:
+    radial-gradient(
+      70% 45% at 50% 96%,
+      rgba(214, 170, 110, 0.16) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      circle at 50% 26%,
+      rgba(18, 21, 30, 0.22) 0%,
+      rgba(13, 15, 22, 0.5) 55%,
+      rgba(10, 12, 18, 0.88) 85%,
+      rgba(9, 11, 16, 0.95) 100%
+    );
+  /* 大气层：贴边青白亮线 → 冷蓝 → 蓝紫雾，外加下侧一丝地平线暖光反照 */
+  box-shadow:
+    inset 0 2px 8px rgba(240, 248, 255, 0.5),
+    inset 0 36px 110px -34px rgba(168, 194, 255, 0.4),
+    0 -3px 12px -2px rgba(220, 235, 255, 0.42),
+    0 -18px 60px -8px rgba(150, 180, 240, 0.32),
+    0 14px 50px -12px rgba(200, 160, 105, 0.28),
+    0 0 150px 6px rgba(110, 130, 210, 0.16);
+  /* 底部约四分之一渐隐，星球沉入地平线的暖光 */
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 60%,
+    rgba(0, 0, 0, 0) 90%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 60%,
+    rgba(0, 0, 0, 0) 90%
+  );
+  /* 入场：星球从地平线下缓缓升起，只播一次 */
+  animation: planet-rise 5s var(--ease-out) 0.15s both;
+}
+
+@keyframes planet-rise {
+  /* 起点：整球沉在图中地平线（约 86vh）之下，顶缘刚好贴着地平线 */
+  from {
+    opacity: 0;
+    transform: translate(-50%, 42%);
+  }
+  12% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* 顶缘高光弧：往右上偏转，受光面有了明确方向 */
+.halo-ring::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: rgba(228, 238, 255, 0.6);
+  filter: blur(3px);
+  transform: rotate(18deg);
+}
+
+/* 轨道巡行光：一段亮斑沿星球边缘缓慢绕行 */
+.halo-ring::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(214, 226, 255, 0.75) 16deg,
+    rgba(201, 168, 124, 0.35) 26deg,
+    transparent 46deg,
+    transparent 360deg
+  );
+  /* 只保留贴边一圈细环，中间镂空 */
+  -webkit-mask: radial-gradient(
+    closest-side,
+    transparent calc(100% - 4px),
+    #000 calc(100% - 2px)
+  );
+  mask: radial-gradient(
+    closest-side,
+    transparent calc(100% - 4px),
+    #000 calc(100% - 2px)
+  );
+  animation: ring-orbit 26s linear infinite;
+}
+
+@keyframes ring-orbit {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ==================== 胶片颗粒 ==================== */
@@ -460,12 +552,12 @@ body {
 @keyframes logo-breathe {
   0%,
   100% {
-    box-shadow: 0 0 10px rgba(201, 168, 124, 0.1),
-      inset 0 0 8px rgba(201, 168, 124, 0.06);
+    box-shadow: 0 0 10px rgba(140, 175, 255, 0.1),
+      inset 0 0 8px rgba(140, 175, 255, 0.06);
   }
   50% {
-    box-shadow: 0 0 30px rgba(201, 168, 124, 0.4),
-      inset 0 0 14px rgba(201, 168, 124, 0.16);
+    box-shadow: 0 0 30px rgba(140, 175, 255, 0.45),
+      inset 0 0 14px rgba(140, 175, 255, 0.18);
   }
 }
 
@@ -758,7 +850,12 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.32em;
   padding-left: 0.32em;
-  color: var(--ink);
+  /* 香槟金渐变字：上浅下深，配柔和金色辉光 */
+  background: linear-gradient(180deg, #e9d5b3 0%, #c9a87c 55%, #a8875e 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 14px rgba(201, 168, 124, 0.45));
   animation: pulse 1.6s ease-in-out infinite;
 }
 
@@ -794,6 +891,23 @@ body {
   100% {
     width: 100%;
   }
+}
+
+/* ==================== 底部信息栏 ==================== */
+.footer {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 90;
+  font-size: 12px;
+  line-height: 2.1;
+  letter-spacing: 0.08em;
+  color: var(--ink-50);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums; /* 等宽数字，秒数跳动时不抖 */
+  animation: fadeUpCenter 1s var(--ease-out) 0.85s both;
 }
 
 /* ==================== 微信复制提示 ==================== */
@@ -838,7 +952,7 @@ body {
   }
 
   .cursor-dot,
-  .cursor-outline {
+  .cursor-trail {
     display: none !important;
   }
 
@@ -940,6 +1054,14 @@ body {
 
   .social-btn::after {
     display: none; /* 触屏没有悬停，字牌只会闪现干扰 */
+  }
+
+  .halo-ring {
+    display: none; /* 窄屏下圆环只剩两条弧线，反而杂乱 */
+  }
+
+  .footer {
+    display: none; /* 移动端底部被导航栏占用，信息栏放不下 */
   }
 }
 

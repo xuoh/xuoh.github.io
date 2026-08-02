@@ -33,12 +33,15 @@
       </div>
     </div>
 
-    <!-- 自定义光标：拖尾光环在下，内点在上 -->
-    <div class="cursor-outline" aria-hidden="true"></div>
+    <!-- 自定义光标：流星拖尾（canvas 轨迹）在下，内点在上 -->
+    <canvas class="cursor-trail" aria-hidden="true"></canvas>
     <div class="cursor-dot" aria-hidden="true"></div>
 
     <!-- 背景图 -->
     <div class="background" aria-hidden="true"></div>
+
+    <!-- 环绕内容的四分之三圆环 -->
+    <div class="halo-ring" aria-hidden="true"></div>
 
     <!-- 胶片颗粒质感层 -->
     <div class="grain" aria-hidden="true"></div>
@@ -172,6 +175,13 @@
         </a>
       </section>
     </main>
+
+    <!-- 底部信息栏 -->
+    <footer class="footer" role="contentinfo">
+      <div class="footer-line">©<span id="footer-year">2026</span> By Xuoh</div>
+      <div class="footer-line" id="uptime">本站居然运行了 -- 天 -- 小时 -- 分 -- 秒 ❤️</div>
+      <div class="footer-line" id="voyager">旅行者 1 号当前距离地球 -- 千米，约为 -- 个天文单位 🚀</div>
+    </footer>
 
     <script src="./main.js" defer></script>
   </body>
