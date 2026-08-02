@@ -9,8 +9,8 @@
 
   // ==================== 配置常量 ====================
   const CONFIG = {
-    STAR_COUNT_DESKTOP: 48,
-    STAR_COUNT_MOBILE: 24,
+    STAR_COUNT_DESKTOP: 72,
+    STAR_COUNT_MOBILE: 36,
     MOBILE_BREAKPOINT: 768,
     HITOKOTO_TIMEOUT: 8000,
     CLOCK_UPDATE_INTERVAL: 1000,
