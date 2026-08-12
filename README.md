@@ -6,7 +6,7 @@
 
 ## 预览
 
-![example](screenshots/example.png)
+![example](screenshots/example.jpg)
 
 ## 功能
 
@@ -33,6 +33,7 @@ xuoh.github.io/
 ├── styles.css      # 样式
 ├── main.js         # 交互逻辑
 ├── images/         # 静态资源（头像、背景、图标）
+├── screenshots/    # README 预览图
 ├── LICENSE         # MIT 许可证
 └── README.md
 ```
