@@ -17,6 +17,11 @@
     CLOCK_UPDATE_INTERVAL: 1000,
     DEBOUNCE_DELAY: 250,
     EASTER_EGG_CLICKS: 5,
+    // 彩蛋流星风暴：持续 3~5 秒，期间高频多发
+    EASTER_EGG_STORM_MIN_MS: 3000,
+    EASTER_EGG_STORM_MAX_MS: 5000,
+    EASTER_EGG_STORM_INTERVAL_MS: 90,
+    EASTER_EGG_STORM_BURST: 3, // 每次定时最多同时放出几颗
     SWIPE_THRESHOLD: 100,
     LOADER_MIN_MS: 350,
     LOADER_FADE_MS: 400,
@@ -424,15 +429,21 @@
   // ==================== 流星系统（偶发划过，安静点缀） ====================
   const MeteorSystem = {
     timerId: null,
+    stormIntervalId: null,
+    stormEndId: null,
+    storming: false,
+    enabled: false,
 
     init() {
       const reduced =
         window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
       if (reduced) return;
+      this.enabled = true;
       this.schedule();
     },
 
     schedule() {
+      if (!this.enabled || this.storming) return;
       // 4~12 秒随机一颗，避免规律感
       const delay = 4000 + Math.random() * 8000;
       this.timerId = setTimeout(() => {
@@ -441,23 +452,81 @@
       }, delay);
     },
 
-    spawn() {
-      const m = document.createElement('div');
-      m.className = 'meteor';
-      m.setAttribute('aria-hidden', 'true');
-      // 只从画面中上部出发，往左下划，不穿过中央内容区下方
-      m.style.top = `${4 + Math.random() * 38}%`;
-      m.style.left = `${35 + Math.random() * 60}%`;
-      m.style.animationDuration = `${1.3 + Math.random() * 0.9}s`;
-      document.body.appendChild(m);
-      m.addEventListener('animationend', () => m.remove(), { once: true });
-    },
-
-    destroy() {
+    clearSchedule() {
       if (this.timerId) {
         clearTimeout(this.timerId);
         this.timerId = null;
       }
+    },
+
+    clearStormTimers() {
+      if (this.stormIntervalId) {
+        clearInterval(this.stormIntervalId);
+        this.stormIntervalId = null;
+      }
+      if (this.stormEndId) {
+        clearTimeout(this.stormEndId);
+        this.stormEndId = null;
+      }
+    },
+
+    spawn(options = {}) {
+      const storm = !!options.storm;
+      const m = document.createElement('div');
+      m.className = 'meteor';
+      m.setAttribute('aria-hidden', 'true');
+      // 只从画面中上部出发，往左下划，不穿过中央内容区下方
+      // 风暴时略放宽生成带，并稍加快划过速度
+      m.style.top = `${(storm ? 2 : 4) + Math.random() * (storm ? 48 : 38)}%`;
+      m.style.left = `${(storm ? 20 : 35) + Math.random() * (storm ? 75 : 60)}%`;
+      m.style.animationDuration = storm
+        ? `${0.7 + Math.random() * 0.7}s`
+        : `${1.3 + Math.random() * 0.9}s`;
+      document.body.appendChild(m);
+      m.addEventListener('animationend', () => m.remove(), { once: true });
+    },
+
+    /**
+     * 彩蛋流星风暴：3~5 秒内高频多发，结束后回到平时低频偶发
+     */
+    storm() {
+      if (!this.enabled) return;
+
+      // 重复触发时重置风暴计时，避免叠多层定时器
+      this.clearSchedule();
+      this.clearStormTimers();
+      this.storming = true;
+
+      const duration =
+        CONFIG.EASTER_EGG_STORM_MIN_MS +
+        Math.random() *
+          (CONFIG.EASTER_EGG_STORM_MAX_MS - CONFIG.EASTER_EGG_STORM_MIN_MS);
+
+      // 立刻先喷一波，避免等第一个 interval
+      const burst = () => {
+        if (document.hidden) return;
+        const n = 1 + Math.floor(Math.random() * CONFIG.EASTER_EGG_STORM_BURST);
+        for (let i = 0; i < n; i++) this.spawn({ storm: true });
+      };
+      burst();
+
+      this.stormIntervalId = setInterval(
+        burst,
+        CONFIG.EASTER_EGG_STORM_INTERVAL_MS
+      );
+
+      this.stormEndId = setTimeout(() => {
+        this.clearStormTimers();
+        this.storming = false;
+        this.schedule(); // 回到 4~12 秒偶发
+      }, duration);
+    },
+
+    destroy() {
+      this.clearSchedule();
+      this.clearStormTimers();
+      this.storming = false;
+      this.enabled = false;
     },
   };
 
@@ -774,73 +843,6 @@
     },
   };
 
-  // ==================== 微信复制系统 ====================
-  const WechatSystem = {
-    wechatName: '暂无',
-    toastTimeout: null,
-
-    async copy() {
-      try {
-        await navigator.clipboard.writeText(this.wechatName);
-        this.showToast('已复制微信名: ' + this.wechatName);
-      } catch (error) {
-        // 如果 clipboard API 不可用，使用传统方法
-        this.fallbackCopy();
-      }
-    },
-
-    fallbackCopy() {
-      const textarea = document.createElement('textarea');
-      textarea.value = this.wechatName;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-
-      try {
-        document.execCommand('copy');
-        this.showToast('已复制微信名: ' + this.wechatName);
-      } catch (error) {
-        this.showToast('复制失败，请手动复制');
-        console.error('复制失败:', error);
-      }
-
-      document.body.removeChild(textarea);
-    },
-
-    showToast(message) {
-      // 移除已存在的提示
-      const existingToast = document.querySelector('.wechat-toast');
-      if (existingToast) {
-        existingToast.remove();
-      }
-
-      // 清除之前的定时器
-      if (this.toastTimeout) {
-        clearTimeout(this.toastTimeout);
-      }
-
-      // 创建提示元素
-      const toast = document.createElement('div');
-      toast.className = 'wechat-toast';
-      toast.textContent = message;
-      document.body.appendChild(toast);
-
-      // 触发动画
-      setTimeout(() => {
-        toast.classList.add('show');
-      }, 10);
-
-      // 2秒后移除
-      this.toastTimeout = setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => {
-          toast.remove();
-        }, 300);
-      }, 2000);
-    },
-  };
-
   // ==================== 滚动系统 ====================
   const ScrollSystem = {
     init() {
@@ -923,10 +925,13 @@
 
     trigger() {
       console.log('%c🎉 你发现了隐藏彩蛋！', 'color: #c9a87c; font-size: 24px; font-weight: bold;');
+      // 保留彩虹滤镜
       document.body.style.animation = 'rainbow 2s linear';
       setTimeout(() => {
         document.body.style.animation = '';
       }, 2000);
+      // 3~5 秒流星风暴，结束后回到平时低频偶发
+      MeteorSystem.storm();
     },
   };
 
@@ -1297,7 +1302,6 @@
   // ==================== 全局暴露的函数 ====================
   window.navigate = (page, event) => NavigationSystem.navigate(page, event);
   window.refreshHitokoto = () => HitokotoSystem.refresh();
-  window.copyWechat = () => WechatSystem.copy();
 
   // ==================== 启动应用 ====================
   if (document.readyState === 'loading') {

@@ -910,35 +910,6 @@ body {
   animation: fadeUpCenter 1s var(--ease-out) 0.85s both;
 }
 
-/* ==================== 微信复制提示 ==================== */
-.wechat-toast {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) translateY(6px);
-  background: rgba(24, 26, 33, 0.6);
-  backdrop-filter: blur(var(--blur-amount));
-  -webkit-backdrop-filter: blur(var(--blur-amount));
-  padding: 18px 36px;
-  border-radius: 999px;
-  border: 1px solid rgba(201, 168, 124, 0.28);
-  color: var(--ink);
-  font-size: 14px;
-  letter-spacing: 0.06em;
-  z-index: 10001;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease, transform 0.3s var(--ease-out);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  text-align: center;
-  white-space: nowrap;
-}
-
-.wechat-toast.show {
-  opacity: 1;
-  transform: translate(-50%, -50%) translateY(0);
-}
-
 /* ==================== 响应式设计 ==================== */
 @media (max-width: 768px) {
   /* 小屏恢复系统光标（触屏无所谓，窄窗口桌面端不能没有鼠标） */
