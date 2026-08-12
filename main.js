@@ -22,7 +22,6 @@
     EASTER_EGG_STORM_MAX_MS: 5000,
     EASTER_EGG_STORM_INTERVAL_MS: 90,
     EASTER_EGG_STORM_BURST: 3, // 每次定时最多同时放出几颗
-    SWIPE_THRESHOLD: 100,
     LOADER_MIN_MS: 350,
     LOADER_FADE_MS: 400,
     HITOKOTO_API: 'https://v1.hitokoto.cn/',
@@ -589,22 +588,38 @@
     update() {
       Utils.tryCatch(() => {
         const now = new Date();
+        const mobile = Utils.isMobile();
 
         const time = now.toLocaleTimeString('zh-CN', {
           hour12: false,
           hour: '2-digit',
           minute: '2-digit',
-          second: '2-digit',
+          // 窄屏省略秒，减少顶栏抖动与占位
+          second: mobile ? undefined : '2-digit',
         });
 
-        const date = now.toLocaleDateString('zh-CN', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          weekday: 'long',
-        });
+        // 移动端用短日期，避免「2026年8月13日星期四」顶栏溢出
+        const date = mobile
+          ? now.toLocaleDateString('zh-CN', {
+              month: 'numeric',
+              day: 'numeric',
+              weekday: 'short',
+            })
+          : now.toLocaleDateString('zh-CN', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              weekday: 'long',
+            });
 
-        if (this.timeElement) this.timeElement.textContent = time;
+        if (this.timeElement) {
+          this.timeElement.textContent = time;
+          // 无秒时 datetime 仍写完整时间，利于无障碍
+          this.timeElement.setAttribute(
+            'datetime',
+            now.toISOString()
+          );
+        }
         if (this.dateElement) this.dateElement.textContent = date;
       }, '时钟更新失败');
     },
@@ -776,6 +791,7 @@
     update() {
       Utils.tryCatch(() => {
         const now = Date.now();
+        const mobile = Utils.isMobile();
 
         let s = Math.max(0, Math.floor((now - this.LAUNCH_MS) / 1000));
         const d = Math.floor(s / 86400);
@@ -784,12 +800,16 @@
         s -= h * 3600;
         const m = Math.floor(s / 60);
         s -= m * 60;
-        this.uptimeEl.textContent =
-          `本站居然运行了 ${d} 天 ${h} 小时 ${m} 分 ${s} 秒 ❤️`;
+
+        // 移动端压缩为一行摘要，避免与底栏导航争位
+        this.uptimeEl.textContent = mobile
+          ? `已运行 ${d} 天 ${h} 时 ${m} 分 ${s} 秒`
+          : `本站居然运行了 ${d} 天 ${h} 小时 ${m} 分 ${s} 秒 ❤️`;
 
         const km =
           this.V_KM_AT_EPOCH +
           ((now - this.V_EPOCH_MS) / 1000) * this.V_KM_PER_SEC;
+        // 桌面完整文案；移动端 CSS 隐藏本行，文案仍保持完整便于调试
         this.voyagerEl.textContent =
           `旅行者 1 号当前距离地球 ${Math.round(km)} 千米，` +
           `约为 ${(km / this.AU_KM).toFixed(6)} 个天文单位 🚀`;
@@ -853,42 +873,28 @@
 
   // ==================== 触摸系统 ====================
   const TouchSystem = {
-    touchStartX: 0,
-    touchEndX: 0,
-
     init() {
       if (!Utils.isTouchDevice()) return;
 
-      document.addEventListener('touchstart', (e) => {
-        this.touchStartX = e.changedTouches[0].screenX;
-      }, { passive: true });
+      // 给 html 打标，便于 CSS 区分真·触屏（与窄窗口桌面不同）
+      document.documentElement.classList.add('is-touch');
 
-      document.addEventListener('touchend', (e) => {
-        this.touchEndX = e.changedTouches[0].screenX;
-        this.handleSwipe();
-      }, { passive: true });
-
-      // 禁用移动端双击缩放
+      // 仅阻止双击缩放在交互控件上连点误触；保留系统捏合缩放可达性
       let lastTouchEnd = 0;
-      document.addEventListener('touchend', (e) => {
-        const now = Date.now();
-        if (now - lastTouchEnd <= 300) {
-          e.preventDefault();
-        }
-        lastTouchEnd = now;
-      }, false);
-    },
-
-    handleSwipe() {
-      const diff = this.touchStartX - this.touchEndX;
-
-      if (Math.abs(diff) > CONFIG.SWIPE_THRESHOLD) {
-        if (diff > 0) {
-          console.log('向左滑动');
-        } else {
-          console.log('向右滑动');
-        }
-      }
+      document.addEventListener(
+        'touchend',
+        (e) => {
+          const now = Date.now();
+          if (now - lastTouchEnd <= 300) {
+            const t = e.target;
+            if (t && t.closest && t.closest('button, a, .logo-wrapper')) {
+              e.preventDefault();
+            }
+          }
+          lastTouchEnd = now;
+        },
+        { passive: false }
+      );
     },
   };
 
@@ -1057,24 +1063,33 @@
   // ==================== 响应式系统 ====================
   const ResponsiveSystem = {
     init() {
-      this.adjustFontSize();
-      // 移动端隐藏光标由 CSS 媒体查询负责，这里只处理字号
-      window.addEventListener('resize', Utils.debounce(() => {
-        this.adjustFontSize();
-      }, CONFIG.DEBOUNCE_DELAY));
+      this.syncViewportClass();
+      // 旋转 / 地址栏伸缩时同步一次；字号交给 CSS，避免 JS 改 rem 干扰系统字体缩放
+      const onViewportChange = Utils.debounce(() => {
+        this.syncViewportClass();
+        // 断点切换时立刻改写时钟/页脚长短文案
+        ClockSystem.update();
+        FooterSystem.update();
+      }, CONFIG.DEBOUNCE_DELAY);
+
+      window.addEventListener('resize', onViewportChange);
+      window.addEventListener('orientationchange', () => {
+        setTimeout(onViewportChange, 80);
+      });
+
+      // iOS 动态工具栏伸缩
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', onViewportChange);
+      }
     },
 
-    adjustFontSize() {
-      const width = window.innerWidth;
+    syncViewportClass() {
       const root = document.documentElement;
-
-      if (width < 768) {
-        root.style.fontSize = '14px';
-      } else if (width < 1024) {
-        root.style.fontSize = '15px';
-      } else {
-        root.style.fontSize = '16px';
-      }
+      root.classList.toggle('is-mobile', Utils.isMobile());
+      root.classList.toggle(
+        'is-landscape',
+        window.matchMedia('(orientation: landscape)').matches
+      );
     },
   };
 
